@@ -192,28 +192,6 @@ export default function LoginPage({ onBack }: LoginPageProps) {
               {!loading && <ArrowRight size={20} />}
             </button>
 
-            {/* Demo Account Section */}
-            <div className="bg-electric/10 border border-electric/20 rounded-xl p-4 space-y-2">
-              <p className="text-xs font-bold text-electric uppercase tracking-wider text-center">Demo Account - Click to Auto-fill</p>
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail('test@taxflow.demo');
-                  setPassword('Demo123456');
-                }}
-                className="w-full bg-carbon border border-electric/30 rounded-lg py-2 px-3 text-left hover:border-electric transition-all"
-              >
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-slate-400">Email:</span>
-                  <span className="text-white font-mono">test@taxflow.demo</span>
-                </div>
-                <div className="flex justify-between items-center text-sm mt-1">
-                  <span className="text-slate-400">Password:</span>
-                  <span className="text-white font-mono">Demo123456</span>
-                </div>
-              </button>
-            </div>
-
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-white/5"></div>
