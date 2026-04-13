@@ -214,27 +214,6 @@ export default function LoginPage({ onBack }: LoginPageProps) {
               </button>
             </div>
 
-            {/* Bypass Firebase for Demo */}
-            <button
-              type="button"
-              onClick={() => {
-                // Create a mock user for demo purposes
-                const mockUser = {
-                  uid: 'demo-user-123',
-                  email: 'demo@taxflow.com',
-                  displayName: 'Demo User',
-                  photoURL: null,
-                  emailVerified: true
-                };
-                // Store in localStorage to simulate login
-                localStorage.setItem('demoUser', JSON.stringify(mockUser));
-                window.location.reload();
-              }}
-              className="w-full bg-green-500/20 border border-green-500/30 text-green-500 py-3 rounded-xl font-bold hover:bg-green-500/30 transition-all"
-            >
-              🚀 Skip Login - Demo Mode
-            </button>
-
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-white/5"></div>

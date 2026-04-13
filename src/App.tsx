@@ -20,26 +20,6 @@ export default function App() {
   const [showLogin, setShowLogin] = useState(false);
 
   useEffect(() => {
-    // Check for demo user in localStorage first
-    const demoUser = localStorage.getItem('demoUser');
-    if (demoUser) {
-      try {
-        const parsedUser = JSON.parse(demoUser);
-        // Create a mock Firebase user object
-        setUser({
-          ...parsedUser,
-          // Add mock methods that Firebase user would have
-          getIdToken: async () => 'demo-token',
-          reload: async () => {},
-          toJSON: () => parsedUser
-        } as FirebaseUser);
-        setLoading(false);
-        return;
-      } catch (e) {
-        console.error('Failed to parse demo user:', e);
-      }
-    }
-
     const unsub = onAuthStateChanged(auth, (user) => {
       setUser(user);
       setLoading(false);
@@ -100,11 +80,7 @@ export default function App() {
               
               <div className="h-8 w-px bg-white/5"></div>
               
-              <div className="flex items-center gap-3 cursor-pointer group" onClick={() => {
-                // Clear demo user if exists
-                localStorage.removeItem('demoUser');
-                auth.signOut();
-              }}>
+              <div className="flex items-center gap-3 cursor-pointer group" onClick={() => auth.signOut()}>
                 <div className="text-right hidden sm:block">
                   <p className="text-sm font-bold text-white group-hover:text-electric transition-colors">{user.displayName || 'User'}</p>
                   <p className="text-xs font-medium text-slate-500">Sign Out</p>
