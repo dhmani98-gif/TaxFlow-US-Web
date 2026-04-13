@@ -1,0 +1,85 @@
+{
+  "entities": {
+    "Organization": {
+      "title": "Organization",
+      "description": "Company or entity owning the tax data",
+      "type": "object",
+      "properties": {
+        "owner_id": { "type": "string", "description": "UID of the owner user" },
+        "legal_name": { "type": "string" },
+        "tax_id_ein": { "type": "string", "description": "Encrypted EIN" },
+        "entity_type": { "type": "string", "enum": ["LLC", "S-Corp", "C-Corp", "Sole_Proprietorship"] },
+        "fiscal_year_end": { "type": "string" }
+      },
+      "required": ["owner_id", "legal_name", "entity_type"]
+    },
+    "Connection": {
+      "title": "Connection",
+      "description": "Platform connection details",
+      "type": "object",
+      "properties": {
+        "org_id": { "type": "string" },
+        "platform": { "type": "string", "enum": ["Shopify", "Amazon", "Stripe", "Bank"] },
+        "credentials_vault_id": { "type": "string" },
+        "sync_status": { "type": "string", "enum": ["Active", "Revoked", "Syncing"] },
+        "last_successful_sync": { "type": "string", "format": "date-time" }
+      },
+      "required": ["org_id", "platform", "sync_status"]
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "description": "Centralized financial transaction",
+      "type": "object",
+      "properties": {
+        "org_id": { "type": "string" },
+        "source_id": { "type": "string" },
+        "raw_data": { "type": "object" },
+        "transaction_date": { "type": "string", "format": "date-time" },
+        "amount": { "type": "number" },
+        "tax_amount": { "type": "number" },
+        "shipping_cost": { "type": "number" },
+        "fee_amount": { "type": "number" },
+        "category_id": { "type": "string" },
+        "state_code": { "type": "string", "description": "US State Code for Nexus tracking" }
+      },
+      "required": ["org_id", "amount", "transaction_date"]
+    },
+    "Subscription": {
+      "title": "Subscription",
+      "description": "User subscription details from Stripe",
+      "type": "object",
+      "properties": {
+        "user_id": { "type": "string" },
+        "stripe_customer_id": { "type": "string" },
+        "stripe_subscription_id": { "type": "string" },
+        "plan_id": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "canceled", "past_due", "trialing"] },
+        "current_period_end": { "type": "string", "format": "date-time" }
+      },
+      "required": ["user_id", "status"]
+    },
+    "NexusStatus": {
+      "title": "NexusStatus",
+      "description": "Nexus tracking status per state",
+      "type": "object",
+      "properties": {
+        "org_id": { "type": "string" },
+        "state_code": { "type": "string" },
+        "state_name": { "type": "string" },
+        "total_sales": { "type": "number" },
+        "transaction_count": { "type": "number" },
+        "threshold_amount": { "type": "number" },
+        "threshold_transactions": { "type": "number" },
+        "status": { "type": "string", "enum": ["SAFE", "WARNING", "EXCEEDED"] }
+      },
+      "required": ["org_id", "state_code", "total_sales", "status"]
+    }
+  },
+  "firestore": {
+    "/organizations/{orgId}": { "schema": "Organization", "description": "Organization details" },
+    "/organizations/{orgId}/connections/{connId}": { "schema": "Connection", "description": "Platform connections" },
+    "/organizations/{orgId}/transactions/{txId}": { "schema": "Transaction", "description": "Global transactions" },
+    "/subscriptions/{subId}": { "schema": "Subscription", "description": "User subscriptions" },
+    "/organizations/{orgId}/nexus/{stateCode}": { "schema": "NexusStatus", "description": "Nexus tracking per state" }
+  }
+}
