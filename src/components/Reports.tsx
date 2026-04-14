@@ -45,9 +45,10 @@ const reports = [
 
 export default function Reports() {
   const [transactions, setTransactions] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selectedReport, setSelectedReport] = useState<string | null>(null);
   const [exportFormat, setExportFormat] = useState<'pdf' | 'excel' | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [clientInfo, setClientInfo] = useState<{ storeName?: string; taxId?: string }>({});
   const [files, setFiles] = useState<{name: string, size: string}[]>([
     { name: 'Identity_Verification.pdf', size: '1.2 MB' },
     { name: 'Bank_Statement_Jan.pdf', size: '2.4 MB' }
@@ -92,7 +93,7 @@ export default function Reports() {
           if (format === 'excel') {
             exportSalesTaxToExcel(salesTax);
           } else {
-            exportSalesTaxToPDF(salesTax);
+            exportSalesTaxToPDF(salesTax, clientInfo);
           }
           break;
 
