@@ -6,9 +6,6 @@ import {
   ArrowRight,
   Shield,
   CheckCircle2,
-  Upload,
-  File,
-  X,
   Loader2,
   FileSpreadsheet,
   Package
@@ -49,10 +46,6 @@ export default function Reports() {
   const [exportFormat, setExportFormat] = useState<'pdf' | 'excel' | null>(null);
   const [loading, setLoading] = useState(true);
   const [clientInfo, setClientInfo] = useState<{ storeName?: string; taxId?: string }>({});
-  const [files, setFiles] = useState<{name: string, size: string}[]>([
-    { name: 'Identity_Verification.pdf', size: '1.2 MB' },
-    { name: 'Bank_Statement_Jan.pdf', size: '2.4 MB' }
-  ]);
 
   useEffect(() => {
     const user = auth.currentUser;
@@ -191,40 +184,6 @@ export default function Reports() {
               </div>
             </div>
           ))}
-
-          {/* File Center Section */}
-          <div className="card p-6 bg-carbon border-white/5">
-            <h3 className="text-xl font-bold mb-6 flex items-center gap-2 text-white">
-              <Upload className="text-electric" size={24} />
-              File Center
-            </h3>
-            <div className="space-y-3 mb-6">
-              {files.map((file, idx) => (
-                <div key={idx} className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5">
-                  <div className="flex items-center gap-3">
-                    <File size={18} className="text-slate-500" />
-                    <div>
-                      <p className="text-sm font-bold text-slate-300">{file.name}</p>
-                      <p className="text-[10px] text-slate-500">{file.size}</p>
-                    </div>
-                  </div>
-                  <button 
-                    onClick={() => setFiles(files.filter((_, i) => i !== idx))}
-                    className="text-slate-500 hover:text-red-500 transition-colors"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-              ))}
-            </div>
-            <div className="border-2 border-dashed border-white/5 rounded-2xl p-8 text-center hover:border-electric/50 transition-all cursor-pointer group">
-              <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-electric/10 transition-colors">
-                <Upload className="text-slate-500 group-hover:text-electric" size={24} />
-              </div>
-              <p className="text-sm font-bold text-slate-400">Drag files here or click to upload</p>
-              <p className="text-xs text-slate-500 mt-1">PDF, JPG, PNG (Max 10MB)</p>
-            </div>
-          </div>
         </div>
 
         <div className="space-y-8">
