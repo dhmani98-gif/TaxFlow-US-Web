@@ -61,20 +61,20 @@ service cloud.firestore {
 
     // Rules
     match /organizations/{orgId} {
-      allow read: if isOrgOwner(orgId);
-      allow create: if isAuthenticated() && isValidOrg(request.resource.data) && isOwner(request.resource.data.owner_id);
-      allow update: if isOrgOwner(orgId) && isValidOrg(request.resource.data) && request.resource.data.owner_id == resource.data.owner_id;
-      
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidOrg(request.resource.data);
+      allow update: if isAuthenticated() && isValidOrg(request.resource.data);
+
       match /connections/{connId} {
-        allow read, write: if isOrgOwner(orgId);
+        allow read, write: if isAuthenticated();
       }
-      
+
       match /transactions/{txId} {
-        allow read, write: if isOrgOwner(orgId);
+        allow read, write: if isAuthenticated();
       }
 
       match /nexus/{stateCode} {
-        allow read, write: if isOrgOwner(orgId);
+        allow read, write: if isAuthenticated();
       }
     }
 
