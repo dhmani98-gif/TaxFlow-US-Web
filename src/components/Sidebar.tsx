@@ -24,6 +24,7 @@ const menuItems = [
   { id: 'transactions', label: 'Invoices', icon: ArrowLeftRight },
   { id: 'reports', label: 'Tax Reports', icon: FileText },
   { id: 'pricing', label: 'Subscription', icon: CreditCard },
+  { id: 'settings', label: 'Settings', icon: Settings },
 ];
 
 export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
@@ -65,11 +66,7 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Current Plan</p>
           <p className="text-sm font-bold text-electric">Growth Pro</p>
         </div>
-        <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all">
-          <Settings size={18} />
-          <span className="font-bold text-xs uppercase tracking-wider">Settings</span>
-        </button>
-        <button 
+        <button
           onClick={() => auth.signOut()}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-500/60 hover:text-red-500 hover:bg-red-500/5 transition-all"
         >

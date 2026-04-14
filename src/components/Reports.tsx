@@ -1,43 +1,199 @@
-import React, { useState } from 'react';
-import { 
-  FileText, 
-  Download, 
-  Calendar, 
+import React, { useState, useEffect } from 'react';
+import {
+  FileText,
+  Download,
+  Calendar,
   ArrowRight,
   Shield,
   CheckCircle2,
   Upload,
   File,
-  X
+  X,
+  Loader2
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { db, auth } from '../firebase';
+import { collection, onSnapshot } from 'firebase/firestore';
 
 const reports = [
-  { 
-    id: 'schedule-c', 
-    title: 'IRS Schedule C (Form 1040)', 
+  {
+    id: 'schedule-c',
+    title: 'IRS Schedule C (Form 1040)',
     description: 'Profit or Loss from Business. Automated mapping of your e-commerce income and expenses.',
     type: 'TAX FORM'
   },
-  { 
-    id: 'sales-tax', 
-    title: 'Sales Tax Summary', 
+  {
+    id: 'sales-tax',
+    title: 'Sales Tax Summary',
     description: 'Breakdown of your taxable sales per state, taxes collected, and nexus status.',
     type: 'SUMMARY'
   },
-  { 
-    id: '1099-nec', 
-    title: '1099-NEC Reconciliation', 
+  {
+    id: '1099-nec',
+    title: '1099-NEC Reconciliation',
     description: 'Verify platform-reported income against your actual bank deposits.',
     type: 'RECONCILIATION'
   },
 ];
 
 export default function Reports() {
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedReport, setSelectedReport] = useState<string | null>(null);
   const [files, setFiles] = useState<{name: string, size: string}[]>([
     { name: 'Identity_Verification.pdf', size: '1.2 MB' },
     { name: 'Bank_Statement_Jan.pdf', size: '2.4 MB' }
   ]);
+
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const orgId = user.uid;
+    const txQuery = collection(db, `organizations/${orgId}/transactions`);
+
+    const unsub = onSnapshot(txQuery, (snapshot) => {
+      const txs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setTransactions(txs);
+      setLoading(false);
+    }, (err) => {
+      console.error("Firestore Error (Transactions):", err);
+      setLoading(false);
+    });
+
+    return () => unsub();
+  }, []);
+
+  // Schedule C Logic: Calculate net income and tax-recognized expenses
+  const calculateScheduleC = () => {
+    const totalRevenue = transactions
+      .filter(t => t.amount > 0)
+      .reduce((acc, t) => acc + t.amount, 0);
+
+    const totalExpenses = Math.abs(transactions
+      .filter(t => t.amount < 0)
+      .reduce((acc, t) => acc + t.amount, 0));
+
+    const netProfit = totalRevenue - totalExpenses;
+
+    // Group expenses by category
+    const expensesByCategory = transactions
+      .filter(t => t.amount < 0)
+      .reduce((acc: any, t) => {
+        const category = t.categoryId || 'Other';
+        acc[category] = (acc[category] || 0) + Math.abs(t.amount);
+        return acc;
+      }, {});
+
+    return {
+      totalRevenue,
+      totalExpenses,
+      netProfit,
+      expensesByCategory
+    };
+  };
+
+  // Sales Tax Summary: Separate sales by state
+  const calculateSalesTaxSummary = () => {
+    const salesByState = transactions
+      .filter(t => t.amount > 0 && t.state_code)
+      .reduce((acc: any, t) => {
+        const state = t.state_code;
+        acc[state] = (acc[state] || 0) + t.amount;
+        return acc;
+      }, {});
+
+    return salesByState;
+  };
+
+  // 1099-NEC: Compare bank amounts with Shopify records
+  const calculate1099NEC = () => {
+    const shopifyTotal = transactions
+      .filter(t => t.platform === 'Shopify' && t.amount > 0)
+      .reduce((acc, t) => acc + t.amount, 0);
+
+    const bankTotal = transactions
+      .filter(t => t.platform === 'Bank' && t.amount > 0)
+      .reduce((acc, t) => acc + t.amount, 0);
+
+    const difference = Math.abs(shopifyTotal - bankTotal);
+    const isMatched = difference < 0.01;
+
+    return {
+      shopifyTotal,
+      bankTotal,
+      difference,
+      isMatched
+    };
+  };
+
+  const handleGenerateReport = (reportId: string) => {
+    setSelectedReport(reportId);
+
+    let reportData: any;
+    let reportContent = '';
+
+    switch (reportId) {
+      case 'schedule-c':
+        const scheduleC = calculateScheduleC();
+        reportData = scheduleC;
+        reportContent = `
+IRS Schedule C (Form 1040)
+==========================
+Total Revenue: $${scheduleC.totalRevenue.toFixed(2)}
+Total Expenses: $${scheduleC.totalExpenses.toFixed(2)}
+Net Profit/Loss: $${scheduleC.netProfit.toFixed(2)}
+
+Expenses by Category:
+${Object.entries(scheduleC.expensesByCategory).map(([cat, amt]) => `  ${cat}: $${(amt as number).toFixed(2)}`).join('\n')}
+        `.trim();
+        break;
+
+      case 'sales-tax':
+        const salesTax = calculateSalesTaxSummary();
+        reportData = salesTax;
+        reportContent = `
+Sales Tax Summary
+=================
+${Object.entries(salesTax).map(([state, amt]) => `  ${state}: $${(amt as number).toFixed(2)}`).join('\n')}
+        `.trim();
+        break;
+
+      case '1099-nec':
+        const nec = calculate1099NEC();
+        reportData = nec;
+        reportContent = `
+1099-NEC Reconciliation
+========================
+Shopify Reported: $${nec.shopifyTotal.toFixed(2)}
+Bank Deposits: $${nec.bankTotal.toFixed(2)}
+Difference: $${nec.difference.toFixed(2)}
+Status: ${nec.isMatched ? '✓ MATCHED' : '⚠ DISCREPANCY'}
+        `.trim();
+        break;
+    }
+
+    // Download as text file
+    const blob = new Blob([reportContent], { type: 'text/plain;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${reportId}_report_${new Date().toISOString().split('T')[0]}.txt`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    setSelectedReport(null);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-[60vh]">
+        <Loader2 className="animate-spin text-electric" size={40} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -67,9 +223,13 @@ export default function Reports() {
               <p className="text-sm text-slate-500 mb-6 leading-relaxed">
                 {report.description}
               </p>
-              <button className="flex items-center gap-2 text-sm font-bold text-electric group-hover:gap-3 transition-all">
-                Generate Report
-                <ArrowRight size={16} />
+              <button
+                onClick={() => handleGenerateReport(report.id)}
+                disabled={selectedReport === report.id}
+                className="flex items-center gap-2 text-sm font-bold text-electric group-hover:gap-3 transition-all disabled:opacity-50"
+              >
+                {selectedReport === report.id ? <Loader2 className="animate-spin" size={16} /> : 'Generate Report'}
+                {selectedReport !== report.id && <ArrowRight size={16} />}
               </button>
             </div>
           ))}

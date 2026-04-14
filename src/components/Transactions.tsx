@@ -1,17 +1,18 @@
 import React, { useState } from 'react';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store';
-import { 
-  Search, 
-  Filter, 
-  Download, 
+import {
+  Search,
+  Filter,
+  Download,
   Plus,
   ShoppingBag,
   Store,
   CreditCard,
   Building2,
   MoreHorizontal,
-  ArrowUpDown
+  ArrowUpDown,
+  X
 } from 'lucide-react';
 import { formatCurrency, cn } from '../lib/utils';
 
@@ -25,11 +26,41 @@ const platformIcons: Record<string, any> = {
 export default function Transactions() {
   const { transactions } = useSelector((state: RootState) => state.app);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showAddModal, setShowAddModal] = useState(false);
 
-  const filteredTransactions = transactions.filter(t => 
+  const filteredTransactions = transactions.filter(t =>
     t.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
     t.sourceId.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const exportToCSV = () => {
+    if (filteredTransactions.length === 0) {
+      alert('لا توجد معاملات لتصديرها');
+      return;
+    }
+
+    const headers = ['Date', 'Source', 'Description', 'Category', 'Amount'];
+    const csvContent = [
+      headers.join(','),
+      ...filteredTransactions.map(tx => [
+        new Date(tx.transactionDate).toLocaleDateString(),
+        tx.platform,
+        tx.description,
+        tx.categoryId || 'Uncategorized',
+        tx.amount.toFixed(2)
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `transactions_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -39,11 +70,11 @@ export default function Transactions() {
           <p className="text-slate-500">Review and categorize your business activity with precision.</p>
         </div>
         <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-4 py-2.5 bg-white/5 border border-white/5 rounded-lg text-sm font-bold text-slate-300 hover:bg-white/10 transition-colors">
+          <button onClick={exportToCSV} className="flex items-center gap-2 px-4 py-2.5 bg-white/5 border border-white/5 rounded-lg text-sm font-bold text-slate-300 hover:bg-white/10 transition-colors">
             <Download size={16} />
             Export CSV
           </button>
-          <button className="flex items-center gap-2 px-4 py-2.5 bg-electric text-carbon rounded-lg text-sm font-black hover:brightness-110 transition-all shadow-lg shadow-electric/20">
+          <button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 px-4 py-2.5 bg-electric text-carbon rounded-lg text-sm font-black hover:brightness-110 transition-all shadow-lg shadow-electric/20">
             <Plus size={16} />
             Add Transaction
           </button>
@@ -145,6 +176,71 @@ export default function Transactions() {
           </div>
         </div>
       </div>
+
+      {/* Add Transaction Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-carbon border border-white/10 rounded-2xl w-full max-w-lg p-6 space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xl font-bold text-white">Add Transaction</h3>
+              <button onClick={() => setShowAddModal(false)} className="p-2 text-slate-400 hover:text-white transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+
+            <form className="space-y-4">
+              <div>
+                <label className="block text-sm font-bold text-slate-400 mb-2">Date</label>
+                <input type="date" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg outline-none focus:ring-2 focus:ring-electric/20 focus:border-electric text-white" />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-slate-400 mb-2">Description</label>
+                <input type="text" placeholder="e.g., Office Supplies" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg outline-none focus:ring-2 focus:ring-electric/20 focus:border-electric text-white" />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-slate-400 mb-2">Category</label>
+                <select className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg outline-none focus:ring-2 focus:ring-electric/20 focus:border-electric text-white">
+                  <option value="">Select category</option>
+                  <option value="sales">Sales Income</option>
+                  <option value="advertising">Advertising</option>
+                  <option value="supplies">Office Supplies</option>
+                  <option value="software">Software & Tools</option>
+                  <option value="travel">Travel & Meals</option>
+                  <option value="other">Other Expenses</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-slate-400 mb-2">Amount</label>
+                <input type="number" placeholder="0.00" step="0.01" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg outline-none focus:ring-2 focus:ring-electric/20 focus:border-electric text-white" />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-slate-400 mb-2">Source</label>
+                <select className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg outline-none focus:ring-2 focus:ring-electric/20 focus:border-electric text-white">
+                  <option value="">Select source</option>
+                  <option value="Bank">Bank</option>
+                  <option value="Shopify">Shopify</option>
+                  <option value="Amazon">Amazon</option>
+                  <option value="Stripe">Stripe</option>
+                  <option value="Manual">Manual Entry</option>
+                </select>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button type="button" onClick={() => setShowAddModal(false)} className="flex-1 py-3 bg-white/5 border border-white/10 rounded-lg font-bold text-slate-300 hover:bg-white/10 transition-colors">
+                  Cancel
+                </button>
+                <button type="submit" className="flex-1 py-3 bg-electric text-carbon rounded-lg font-black hover:brightness-110 transition-all">
+                  Add Transaction
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

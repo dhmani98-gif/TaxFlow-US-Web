@@ -7,6 +7,7 @@ import Integrations from './components/Integrations';
 import Transactions from './components/Transactions';
 import Reports from './components/Reports';
 import Pricing from './components/Pricing';
+import Settings from './components/Settings';
 import LandingPage from './components/LandingPage';
 import LoginPage from './components/LoginPage';
 import { Bell, User, Search, LogIn, Loader2 } from 'lucide-react';
@@ -34,6 +35,7 @@ export default function App() {
       case 'transactions': return <Transactions />;
       case 'reports': return <Reports />;
       case 'pricing': return <Pricing />;
+      case 'settings': return <Settings />;
       default: return <Dashboard />;
     }
   };

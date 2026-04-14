@@ -71,11 +71,33 @@ export default function Dashboard() {
     
   const estimatedTax = (totalRevenue - totalDeductions) * 0.15;
 
-  const chartData = [
-    { name: 'Jan', revenue: 4500, expenses: 1200 },
-    { name: 'Feb', revenue: 5200, expenses: 1500 },
-    { name: 'Mar', revenue: totalRevenue || 0, expenses: totalDeductions || 0 },
-  ];
+  // Group transactions by month for chart
+  const chartData = React.useMemo(() => {
+    if (transactions.length === 0) return [];
+
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthlyData: any[] = [];
+
+    transactions.forEach(tx => {
+      const date = tx.transaction_date?.toDate ? tx.transaction_date.toDate() : new Date();
+      const monthName = monthNames[date.getMonth()];
+      const existingMonth = monthlyData.find(m => m.name === monthName);
+
+      if (existingMonth) {
+        if (tx.amount > 0) existingMonth.revenue += tx.amount;
+        if (tx.amount < 0) existingMonth.expenses += Math.abs(tx.amount);
+      } else {
+        monthlyData.push({
+          name: monthName,
+          revenue: tx.amount > 0 ? tx.amount : 0,
+          expenses: tx.amount < 0 ? Math.abs(tx.amount) : 0
+        });
+      }
+    });
+
+    // Sort by month order
+    return monthlyData.sort((a, b) => monthNames.indexOf(a.name) - monthNames.indexOf(b.name));
+  }, [transactions]);
 
   if (loading) {
     return (
@@ -131,20 +153,26 @@ export default function Dashboard() {
             </select>
           </div>
           <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ffffff05" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} tickFormatter={(val) => `$${val}`} />
-                <Tooltip 
-                  cursor={{fill: '#ffffff05'}}
-                  contentStyle={{backgroundColor: '#111', borderRadius: '12px', border: '1px solid #ffffff05', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.5)'}}
-                  itemStyle={{color: '#fff'}}
-                />
-                <Bar dataKey="revenue" fill="#00E5FF" radius={[4, 4, 0, 0]} barSize={40} />
-                <Bar dataKey="expenses" fill="#64748b" radius={[4, 4, 0, 0]} barSize={40} />
-              </BarChart>
-            </ResponsiveContainer>
+            {chartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ffffff05" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} />
+                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} tickFormatter={(val) => `$${val}`} />
+                  <Tooltip
+                    cursor={{fill: '#ffffff05'}}
+                    contentStyle={{backgroundColor: '#111', borderRadius: '12px', border: '1px solid #ffffff05', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.5)'}}
+                    itemStyle={{color: '#fff'}}
+                  />
+                  <Bar dataKey="revenue" fill="#00E5FF" radius={[4, 4, 0, 0]} barSize={40} />
+                  <Bar dataKey="expenses" fill="#64748b" radius={[4, 4, 0, 0]} barSize={40} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <p className="text-slate-500 text-sm">لا توجد بيانات حالياً. ابدأ بربط متجرك أو أضف معاملة يدوياً.</p>
+              </div>
+            )}
           </div>
         </div>
 
