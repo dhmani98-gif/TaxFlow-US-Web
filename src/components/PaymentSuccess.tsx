@@ -16,7 +16,7 @@ export default function PaymentSuccess() {
             Payment Successful!
           </h1>
           <p className="text-xl text-slate-400">
-            مرحباً بك في مستقبل المحاسبة المؤتمتة
+            Welcome to the future of automated accounting
           </p>
         </div>
 
@@ -52,7 +52,7 @@ export default function PaymentSuccess() {
           onClick={() => window.location.href = '/integrations'}
           className="w-full py-4 bg-electric text-carbon rounded-xl font-black text-lg hover:brightness-110 transition-all flex items-center justify-center gap-3 shadow-xl shadow-electric/20"
         >
-          ابدأ بربط متجرك على Shopify الآن
+          Start connecting your Shopify store now
           <ArrowRight size={20} />
         </button>
 

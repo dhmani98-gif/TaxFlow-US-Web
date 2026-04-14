@@ -75,10 +75,10 @@ export default function Settings() {
         updatedAt: new Date().toISOString()
       }, { merge: true });
 
-      alert('تم حفظ الإعدادات بنجاح!');
+      alert('Settings saved successfully!');
     } catch (error) {
       console.error('Error saving settings:', error);
-      alert('حدث خطأ أثناء حفظ الإعدادات');
+      alert('Error saving settings');
     } finally {
       setSaving(false);
     }

@@ -170,7 +170,7 @@ export default function Dashboard() {
               </ResponsiveContainer>
             ) : (
               <div className="flex items-center justify-center h-full">
-                <p className="text-slate-500 text-sm">لا توجد بيانات حالياً. ابدأ بربط متجرك أو أضف معاملة يدوياً.</p>
+                <p className="text-slate-500 text-sm">No data available. Connect your store or add transactions manually.</p>
               </div>
             )}
           </div>

@@ -35,7 +35,7 @@ export default function Transactions() {
 
   const exportToCSV = () => {
     if (filteredTransactions.length === 0) {
-      alert('لا توجد معاملات لتصديرها');
+      alert('No transactions to export');
       return;
     }
 

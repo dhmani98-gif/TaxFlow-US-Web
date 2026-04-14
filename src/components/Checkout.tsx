@@ -58,10 +58,10 @@ export default function Checkout({ planName, planPrice, planFeatures }: Checkout
           </div>
           <div>
             <h2 className="text-2xl font-bold text-white mb-2">Payment Successful!</h2>
-            <p className="text-slate-400">مرحباً بك في مستقبل المحاسبة المؤتمتة</p>
+            <p className="text-slate-400">Welcome to the future of automated accounting</p>
           </div>
           <button className="w-full py-4 bg-electric text-carbon rounded-xl font-black text-lg hover:brightness-110 transition-all">
-            ابدأ بربط متجرك على Shopify الآن
+            Start connecting your Shopify store now
           </button>
         </div>
       </div>
