@@ -9,14 +9,15 @@ export interface ReconciliationItem {
   netPayout: number;
   actualBankDeposit?: number;
   variance: number;
-  status: 'reconciled' | 'unreconciled' | 'pending';
+  status: 'reconciled' | 'discrepancy' | 'pending';
   referenceId?: string;
+  discrepancyReason?: string;
 }
 
 export interface ReconciliationReport {
   totalItems: number;
   reconciledCount: number;
-  unreconciledCount: number;
+  discrepancyCount: number;
   pendingCount: number;
   totalGrossAmount: number;
   totalFees: number;
@@ -46,7 +47,23 @@ export function calculateReconciliation(
 
     const actualBankDeposit = matchingBankTx?.amount;
     const variance = actualBankDeposit ? Math.abs(netPayout - actualBankDeposit) : netPayout;
-    const status = matchingBankTx ? (variance < 0.01 ? 'reconciled' : 'unreconciled') : 'pending';
+
+    // Determine status with discrepancy highlighting
+    let status: 'reconciled' | 'discrepancy' | 'pending';
+    let discrepancyReason: string | undefined;
+
+    if (!matchingBankTx) {
+      status = 'pending';
+      discrepancyReason = 'No matching bank transaction found';
+    } else if (variance < 0.01) {
+      status = 'reconciled';
+    } else if (variance > 1) {
+      status = 'discrepancy';
+      discrepancyReason = `Variance exceeds $1.00 ($${variance.toFixed(2)})`;
+    } else {
+      status = 'discrepancy';
+      discrepancyReason = `Small variance detected ($${variance.toFixed(2)})`;
+    }
 
     items.push({
       id: stripeTx.id,
@@ -58,7 +75,8 @@ export function calculateReconciliation(
       actualBankDeposit,
       variance,
       status,
-      referenceId: stripeTx.sourceId
+      referenceId: stripeTx.sourceId,
+      discrepancyReason
     });
   });
 
@@ -80,14 +98,15 @@ export function calculateReconciliation(
         actualBankDeposit: bankTx.amount,
         variance: 0,
         status: 'pending',
-        referenceId: bankTx.sourceId
+        referenceId: bankTx.sourceId,
+        discrepancyReason: 'No matching Stripe payout found'
       });
     }
   });
 
   // Calculate totals
   const reconciledCount = items.filter(i => i.status === 'reconciled').length;
-  const unreconciledCount = items.filter(i => i.status === 'unreconciled').length;
+  const discrepancyCount = items.filter(i => i.status === 'discrepancy').length;
   const pendingCount = items.filter(i => i.status === 'pending').length;
   const totalGrossAmount = items.reduce((sum, i) => sum + i.grossAmount, 0);
   const totalFees = items.reduce((sum, i) => sum + i.fees, 0);
@@ -95,13 +114,17 @@ export function calculateReconciliation(
   const totalActualBankDeposit = items.reduce((sum, i) => sum + (i.actualBankDeposit || 0), 0);
   const totalVariance = items.reduce((sum, i) => sum + i.variance, 0);
 
-  // Sort by date descending
-  items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  // Sort by date descending, discrepancies first
+  items.sort((a, b) => {
+    if (a.status === 'discrepancy' && b.status !== 'discrepancy') return -1;
+    if (a.status !== 'discrepancy' && b.status === 'discrepancy') return 1;
+    return new Date(b.date).getTime() - new Date(a.date).getTime();
+  });
 
   return {
     totalItems: items.length,
     reconciledCount,
-    unreconciledCount,
+    discrepancyCount,
     pendingCount,
     totalGrossAmount,
     totalFees,
@@ -112,8 +135,8 @@ export function calculateReconciliation(
   };
 }
 
-export function getUnreconciledItems(report: ReconciliationReport): ReconciliationItem[] {
-  return report.items.filter(item => item.status === 'unreconciled');
+export function getDiscrepancyItems(report: ReconciliationReport): ReconciliationItem[] {
+  return report.items.filter(item => item.status === 'discrepancy');
 }
 
 export function getPendingItems(report: ReconciliationReport): ReconciliationItem[] {

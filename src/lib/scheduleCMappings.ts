@@ -28,6 +28,18 @@ export const scheduleCLineMappings: Record<string, {
     category: 'Income'
   },
 
+  // Line 2 - Returns and allowances
+  'refund': {
+    line: '2',
+    description: 'Returns and allowances',
+    category: 'Returns'
+  },
+  'returns': {
+    line: '2',
+    description: 'Returns and allowances',
+    category: 'Returns'
+  },
+
   // Line 4 - Cost of Goods Sold
   'cogs': {
     line: '4',
@@ -290,6 +302,8 @@ export const scheduleCLineMappings: Record<string, {
 // Calculate Schedule C totals from transactions
 export interface ScheduleCResult {
   line1_grossReceipts: number;
+  line2_returns: number;
+  line3_netReceipts: number;
   line4_costOfGoodsSold: number;
   line7_grossProfit: number;
   line28_totalExpenses: number;
@@ -304,6 +318,9 @@ export interface ScheduleCResult {
 export function calculateScheduleC(transactions: any[]): ScheduleCResult {
   const lineItems: Record<string, number> = {};
 
+  let grossSales = 0;
+  let refunds = 0;
+
   transactions.forEach(tx => {
     const category = tx.categoryId || 'other';
     const mapping = scheduleCLineMappings[category] || scheduleCLineMappings['other'];
@@ -312,18 +329,27 @@ export function calculateScheduleC(transactions: any[]): ScheduleCResult {
     if (tx.amount < 0) {
       // Expense
       const expenseAmount = Math.abs(tx.amount);
-      lineItems[line] = (lineItems[line] || 0) + expenseAmount;
+
+      // Check if this is a refund (negative income transaction)
+      if (category === 'refund' || tx.description?.toLowerCase().includes('refund')) {
+        refunds += expenseAmount;
+      } else {
+        lineItems[line] = (lineItems[line] || 0) + expenseAmount;
+      }
     } else {
       // Income
       if (line === '1') {
+        grossSales += tx.amount;
         lineItems[line] = (lineItems[line] || 0) + tx.amount;
       }
     }
   });
 
-  const line1_grossReceipts = lineItems['1'] || 0;
+  const line1_grossReceipts = grossSales;
+  const line2_returns = refunds;
+  const line3_netReceipts = line1_grossReceipts - line2_returns;
   const line4_costOfGoodsSold = lineItems['4'] || 0;
-  const line7_grossProfit = line1_grossReceipts - line4_costOfGoodsSold;
+  const line7_grossProfit = line3_netReceipts - line4_costOfGoodsSold;
 
   // Sum all expense lines (8-28)
   const expenseLines = ['8', '20a', '20b', '21', '22', '23', '24a', '24b', '25', '26', '27', '28a', '28b'];
@@ -340,6 +366,8 @@ export function calculateScheduleC(transactions: any[]): ScheduleCResult {
 
   return {
     line1_grossReceipts,
+    line2_returns,
+    line3_netReceipts,
     line4_costOfGoodsSold,
     line7_grossProfit,
     line28_totalExpenses,

@@ -27,13 +27,152 @@ export function exportToExcel(data: ExcelExportData) {
   }
 }
 
-// Export Schedule C to Excel
+// Export all reports to a single Excel file with 3 sheets
+export function exportAllReportsToExcel(scheduleCResult: any, salesData: any[], reconciliationReport: any) {
+  try {
+    // Create a workbook
+    const workbook = XLSX.utils.book_new();
+
+    // Schedule C Sheet
+    const scheduleCData = [
+      {
+        'Line': '1',
+        'Description': 'Gross receipts or sales',
+        'Amount': scheduleCResult.line1_grossReceipts
+      },
+      {
+        'Line': '2',
+        'Description': 'Returns and allowances',
+        'Amount': scheduleCResult.line2_returns
+      },
+      {
+        'Line': '3',
+        'Description': 'Net receipts',
+        'Amount': scheduleCResult.line3_netReceipts
+      },
+      {
+        'Line': '4',
+        'Description': 'Cost of goods sold',
+        'Amount': scheduleCResult.line4_costOfGoodsSold
+      },
+      {
+        'Line': '7',
+        'Description': 'Gross profit',
+        'Amount': scheduleCResult.line7_grossProfit
+      },
+      {
+        'Line': '28',
+        'Description': 'Total expenses',
+        'Amount': scheduleCResult.line28_totalExpenses
+      },
+      {
+        'Line': '29',
+        'Description': 'Net profit (or loss)',
+        'Amount': scheduleCResult.line29_netProfit
+      },
+      {},
+      ...scheduleCResult.lineItems.map((item: any) => ({
+        'Line': item.line,
+        'Description': item.description,
+        'Amount': item.amount
+      }))
+    ];
+    const scheduleCWorksheet = XLSX.utils.json_to_sheet(scheduleCData);
+    XLSX.utils.book_append_sheet(workbook, scheduleCWorksheet, 'Schedule C');
+
+    // Sales Tax Sheet
+    const salesTaxData = salesData.map((state: any) => ({
+      'Province Code': state.provinceCode,
+      'Province Name': state.provinceName,
+      'Total Sales': state.totalSales,
+      'Tax Collected': state.taxCollected,
+      'Nexus Threshold': state.nexusThreshold,
+      'Nexus Reached': state.nexusReached ? 'Yes' : 'No',
+      'Percentage': `${state.percentage.toFixed(1)}%`
+    }));
+    const salesTaxWorksheet = XLSX.utils.json_to_sheet(salesTaxData);
+    XLSX.utils.book_append_sheet(workbook, salesTaxWorksheet, 'Sales Tax');
+
+    // Reconciliation Sheet
+    const reconciliationData = [
+      {
+        'Metric': 'Total Items',
+        'Value': reconciliationReport.totalItems
+      },
+      {
+        'Metric': 'Reconciled',
+        'Value': reconciliationReport.reconciledCount
+      },
+      {
+        'Metric': 'Discrepancy',
+        'Value': reconciliationReport.discrepancyCount
+      },
+      {
+        'Metric': 'Pending',
+        'Value': reconciliationReport.pendingCount
+      },
+      {
+        'Metric': 'Total Gross Amount',
+        'Value': reconciliationReport.totalGrossAmount
+      },
+      {
+        'Metric': 'Total Fees',
+        'Value': reconciliationReport.totalFees
+      },
+      {
+        'Metric': 'Total Net Payout',
+        'Value': reconciliationReport.totalNetPayout
+      },
+      {
+        'Metric': 'Total Bank Deposit',
+        'Value': reconciliationReport.totalActualBankDeposit
+      },
+      {
+        'Metric': 'Total Variance',
+        'Value': reconciliationReport.totalVariance
+      },
+      {},
+      ...reconciliationReport.items.map((item: any) => ({
+        'Date': item.date,
+        'Platform': item.platform,
+        'Gross Amount': item.grossAmount,
+        'Fees': item.fees,
+        'Net Payout': item.netPayout,
+        'Bank Deposit': item.actualBankDeposit || 'N/A',
+        'Variance': item.variance,
+        'Status': item.status,
+        'Discrepancy Reason': item.discrepancyReason || '',
+        'Reference ID': item.referenceId || 'N/A'
+      }))
+    ];
+    const reconciliationWorksheet = XLSX.utils.json_to_sheet(reconciliationData);
+    XLSX.utils.book_append_sheet(workbook, reconciliationWorksheet, 'Reconciliation');
+
+    // Generate Excel file
+    XLSX.writeFile(workbook, `TaxFlow_Reports_${new Date().toISOString().split('T')[0]}.xlsx`);
+  } catch (error) {
+    console.error('Error exporting all reports to Excel:', error);
+    throw error;
+  }
+}
+
+// Export Schedule C to Excel (individual)
 export function exportScheduleCToExcel(scheduleCResult: any) {
   const data = [
     {
       'Line': '1',
       'Description': 'Gross receipts or sales',
       'Amount': scheduleCResult.line1_grossReceipts
+    },
+    {
+      'Line': '2',
+      'Description': 'Returns and allowances',
+      'Amount': scheduleCResult.line2_returns
+    },
+    {
+      'Line': '3',
+      'Description': 'Net receipts',
+      'Amount': scheduleCResult.line3_netReceipts
     },
     {
       'Line': '4',
@@ -69,11 +208,11 @@ export function exportScheduleCToExcel(scheduleCResult: any) {
   });
 }
 
-// Export Sales Tax Summary to Excel
+// Export Sales Tax Summary to Excel (individual)
 export function exportSalesTaxToExcel(salesData: any[]) {
-  const data = salesData.map(state => ({
-    'State Code': state.stateCode,
-    'State Name': state.stateName,
+  const data = salesData.map((state: any) => ({
+    'Province Code': state.provinceCode,
+    'Province Name': state.provinceName,
     'Total Sales': state.totalSales,
     'Tax Collected': state.taxCollected,
     'Nexus Threshold': state.nexusThreshold,
@@ -88,7 +227,7 @@ export function exportSalesTaxToExcel(salesData: any[]) {
   });
 }
 
-// Export Reconciliation Report to Excel
+// Export Reconciliation Report to Excel (individual)
 export function exportReconciliationToExcel(report: any) {
   const data = [
     {
@@ -100,8 +239,8 @@ export function exportReconciliationToExcel(report: any) {
       'Value': report.reconciledCount
     },
     {
-      'Metric': 'Unreconciled',
-      'Value': report.unreconciledCount
+      'Metric': 'Discrepancy',
+      'Value': report.discrepancyCount
     },
     {
       'Metric': 'Pending',
@@ -137,6 +276,7 @@ export function exportReconciliationToExcel(report: any) {
       'Bank Deposit': item.actualBankDeposit || 'N/A',
       'Variance': item.variance,
       'Status': item.status,
+      'Discrepancy Reason': item.discrepancyReason || '',
       'Reference ID': item.referenceId || 'N/A'
     }))
   ];

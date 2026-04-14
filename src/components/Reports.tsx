@@ -10,7 +10,8 @@ import {
   File,
   X,
   Loader2,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Package
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { db, auth } from '../firebase';
@@ -18,7 +19,7 @@ import { collection, onSnapshot } from 'firebase/firestore';
 import { calculateScheduleC } from '../lib/scheduleCMappings';
 import { calculateSalesTaxSummary, getNexusStatus } from '../lib/salesTaxLogic';
 import { calculateReconciliation } from '../lib/reconciliationEngine';
-import { exportScheduleCToExcel, exportSalesTaxToExcel, exportReconciliationToExcel } from '../lib/exportToExcel';
+import { exportScheduleCToExcel, exportSalesTaxToExcel, exportReconciliationToExcel, exportAllReportsToExcel } from '../lib/exportToExcel';
 import { exportScheduleCToPDF, exportSalesTaxToPDF, exportReconciliationToPDF } from '../lib/exportToPDF';
 
 const reports = [
@@ -112,6 +113,22 @@ export default function Reports() {
     } finally {
       setSelectedReport(null);
       setExportFormat(null);
+    }
+  };
+
+  const handleExportAllReports = () => {
+    try {
+      const scheduleC = calculateScheduleC(transactions);
+      const salesTax = calculateSalesTaxSummary(transactions);
+      const stripeTx = transactions.filter(t => t.platform === 'Stripe');
+      const bankTx = transactions.filter(t => t.platform === 'Bank');
+      const reconciliation = calculateReconciliation(stripeTx, bankTx);
+
+      exportAllReportsToExcel(scheduleC, salesTax, reconciliation);
+      alert('All reports exported to Excel with 3 sheets!');
+    } catch (error) {
+      console.error('Error exporting all reports:', error);
+      alert('Error exporting reports. Please try again.');
     }
   };
 
@@ -234,8 +251,12 @@ export default function Reports() {
               </div>
             </div>
             
-            <button className="w-full py-4 bg-electric text-carbon rounded-xl font-black text-lg hover:brightness-110 transition-all shadow-xl shadow-electric/20">
-              Download Full Tax Package (.zip)
+            <button
+              onClick={handleExportAllReports}
+              className="w-full py-4 bg-electric text-carbon rounded-xl font-black text-lg hover:brightness-110 transition-all shadow-xl shadow-electric/20 flex items-center justify-center gap-2"
+            >
+              <Package size={20} />
+              Download All Reports (Excel)
             </button>
           </div>
 

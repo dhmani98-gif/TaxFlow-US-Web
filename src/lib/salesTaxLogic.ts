@@ -1,8 +1,8 @@
-// Sales Tax Logic - Aggregates sales by state and determines Nexus status
+// Sales Tax Logic - Aggregates sales by province and determines Nexus status
 
-export interface StateSalesData {
-  stateCode: string;
-  stateName: string;
+export interface ProvinceSalesData {
+  provinceCode: string;
+  provinceName: string;
   totalSales: number;
   taxCollected: number;
   nexusThreshold: number;
@@ -10,7 +10,7 @@ export interface StateSalesData {
   percentage: number;
 }
 
-// Nexus thresholds by state (in USD)
+// Nexus thresholds by province (in USD) - US states
 export const nexusThresholds: Record<string, number> = {
   'AL': 250000,
   'AK': 100000,
@@ -62,10 +62,24 @@ export const nexusThresholds: Record<string, number> = {
   'WV': 100000,
   'WI': 100000,
   'WY': 100000,
+  // Canadian provinces
+  'AB': 30000,  // Alberta
+  'BC': 30000,  // British Columbia
+  'MB': 30000,  // Manitoba
+  'NB': 30000,  // New Brunswick
+  'NL': 30000,  // Newfoundland and Labrador
+  'NS': 30000,  // Nova Scotia
+  'NT': 30000,  // Northwest Territories
+  'NU': 30000,  // Nunavut
+  'ON': 30000,  // Ontario
+  'PE': 30000,  // Prince Edward Island
+  'QC': 30000,  // Quebec
+  'SK': 30000,  // Saskatchewan
+  'YT': 30000,  // Yukon
 };
 
-// State names mapping
-export const stateNames: Record<string, string> = {
+// Province/State names mapping
+export const provinceNames: Record<string, string> = {
   'AL': 'Alabama',
   'AK': 'Alaska',
   'AZ': 'Arizona',
@@ -116,9 +130,23 @@ export const stateNames: Record<string, string> = {
   'WV': 'West Virginia',
   'WI': 'Wisconsin',
   'WY': 'Wyoming',
+  // Canadian provinces
+  'AB': 'Alberta',
+  'BC': 'British Columbia',
+  'MB': 'Manitoba',
+  'NB': 'New Brunswick',
+  'NL': 'Newfoundland and Labrador',
+  'NS': 'Nova Scotia',
+  'NT': 'Northwest Territories',
+  'NU': 'Nunavut',
+  'ON': 'Ontario',
+  'PE': 'Prince Edward Island',
+  'QC': 'Quebec',
+  'SK': 'Saskatchewan',
+  'YT': 'Yukon',
 };
 
-// Tax rates by state (approximate)
+// Tax rates by province/state (approximate)
 export const taxRates: Record<string, number> = {
   'AL': 0.04,
   'AK': 0.00,
@@ -170,53 +198,75 @@ export const taxRates: Record<string, number> = {
   'WV': 0.06,
   'WI': 0.05,
   'WY': 0.04,
+  // Canadian provinces (GST/HST)
+  'AB': 0.05,
+  'BC': 0.05,
+  'MB': 0.05,
+  'NB': 0.15,
+  'NL': 0.15,
+  'NS': 0.15,
+  'NT': 0.05,
+  'NU': 0.05,
+  'ON': 0.13,
+  'PE': 0.15,
+  'QC': 0.14975,
+  'SK': 0.06,
+  'YT': 0.05,
 };
 
-export function calculateSalesTaxSummary(transactions: any[]): StateSalesData[] {
-  const salesByState: Record<string, number> = {};
+// Nexus threshold variable (can be configured)
+export const nexusThreshold = 100000; // Default threshold in USD
 
-  // Aggregate sales by state
+export function calculateSalesTaxSummary(transactions: any[]): ProvinceSalesData[] {
+  const salesByProvince: Record<string, number> = {};
+
+  // Aggregate sales by province (shipping_address.province)
   transactions.forEach(tx => {
-    if (tx.amount > 0 && tx.state_code) {
+    if (tx.amount > 0 && tx.province_code) {
+      const provinceCode = tx.province_code.toUpperCase();
+      salesByProvince[provinceCode] = (salesByProvince[provinceCode] || 0) + tx.amount;
+    }
+    // Fallback to state_code if province_code not available
+    else if (tx.amount > 0 && tx.state_code) {
       const stateCode = tx.state_code.toUpperCase();
-      salesByState[stateCode] = (salesByState[stateCode] || 0) + tx.amount;
+      salesByProvince[stateCode] = (salesByProvince[stateCode] || 0) + tx.amount;
     }
   });
 
-  // Build state sales data with nexus status
-  const stateSalesData: StateSalesData[] = Object.entries(salesByState).map(([stateCode, totalSales]) => {
-    const nexusThreshold = nexusThresholds[stateCode] || 100000;
-    const taxRate = taxRates[stateCode] || 0.06;
+  // Build province sales data with nexus status
+  const provinceSalesData: ProvinceSalesData[] = Object.entries(salesByProvince).map(([provinceCode, totalSales]) => {
+    const customThreshold = nexusThresholds[provinceCode] || nexusThreshold;
+    const taxRate = taxRates[provinceCode] || 0.06;
     const taxCollected = totalSales * taxRate;
-    const nexusReached = totalSales >= nexusThreshold;
-    const percentage = (totalSales / nexusThreshold) * 100;
+    const nexusReached = totalSales >= customThreshold;
+    const percentage = (totalSales / customThreshold) * 100;
 
     return {
-      stateCode,
-      stateName: stateNames[stateCode] || stateCode,
+      provinceCode,
+      provinceName: provinceNames[provinceCode] || provinceCode,
       totalSales,
       taxCollected,
-      nexusThreshold,
+      nexusThreshold: customThreshold,
       nexusReached,
       percentage
     };
   });
 
   // Sort by total sales descending
-  return stateSalesData.sort((a, b) => b.totalSales - a.totalSales);
+  return provinceSalesData.sort((a, b) => b.totalSales - a.totalSales);
 }
 
-export function getNexusStatus(salesData: StateSalesData[]): {
-  totalStates: number;
-  nexusReachedStates: number;
-  atRiskStates: StateSalesData[];
+export function getNexusStatus(salesData: ProvinceSalesData[]): {
+  totalProvinces: number;
+  nexusReachedProvinces: number;
+  atRiskProvinces: ProvinceSalesData[];
 } {
-  const nexusReachedStates = salesData.filter(s => s.nexusReached);
-  const atRiskStates = salesData.filter(s => !s.nexusReached && s.percentage >= 80);
+  const nexusReachedProvinces = salesData.filter(s => s.nexusReached);
+  const atRiskProvinces = salesData.filter(s => !s.nexusReached && s.percentage >= 80);
 
   return {
-    totalStates: salesData.length,
-    nexusReachedStates: nexusReachedStates.length,
-    atRiskStates
+    totalProvinces: salesData.length,
+    nexusReachedProvinces: nexusReachedProvinces.length,
+    atRiskProvinces
   };
 }
