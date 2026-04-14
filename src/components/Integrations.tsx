@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { db, auth } from '../firebase';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { collection, onSnapshot, doc, getDoc, writeBatch } from 'firebase/firestore';
 
 const platforms = [
   { id: 'Shopify', name: 'Shopify', icon: ShoppingBag, color: 'text-green-500', bg: 'bg-green-500/10' },
@@ -56,22 +56,63 @@ export default function Integrations() {
     setSyncSuccess(null);
     try {
       if (platformId === 'Shopify') {
-        // Use server API instead of direct Firestore write
-        const response = await fetch('/api/simulate-shopify-sync', {
-          method: 'POST',
+        // Get Shopify credentials from settings
+        const settingsDoc = await getDoc(doc(db, 'users', user.uid, 'settings', 'config'));
+        const settings = settingsDoc.data();
+
+        if (!settings?.shopifyShopUrl || !settings?.shopifyAccessToken) {
+          alert('Please configure Shopify credentials in Settings first (Shop URL & Access Token)');
+          setSyncingId(null);
+          return;
+        }
+
+        // Real Shopify API call
+        const shopUrl = settings.shopifyShopUrl.replace(/\/$/, '');
+        const response = await fetch(`${shopUrl}/admin/api/2024-01/orders.json?status=any&limit=250`, {
           headers: {
+            'X-Shopify-Access-Token': settings.shopifyAccessToken,
             'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ userId: user.uid })
+          }
         });
 
         if (!response.ok) {
           const errorText = await response.text();
-          throw new Error(`Server Error: ${response.status} - ${errorText}`);
+          throw new Error(`Shopify API Error: ${response.status} - ${errorText}`);
         }
 
         const data = await response.json();
-        setSyncSuccess(`Successfully synced ${data.ordersCount} Shopify orders!`);
+        const orders = data.orders;
+
+        // Save orders to Firestore using client-side
+        const batch = writeBatch(db);
+        const orgId = user.uid;
+
+        orders.forEach((order: any) => {
+          const txRef = doc(db, `organizations/${orgId}/transactions`, `shopify_${order.id}`);
+          batch.set(txRef, {
+            org_id: orgId,
+            amount: parseFloat(order.total_price),
+            transaction_date: new Date(order.created_at),
+            state_code: order.shipping_address?.province_code || order.shipping_address?.state_code || 'N/A',
+            platform: 'Shopify',
+            description: `Order #${order.order_number} - ${order.customer?.first_name} ${order.customer?.last_name}`,
+            sourceId: order.id,
+            categoryId: 'sales'
+          }, { merge: true });
+        });
+
+        // Update connection status
+        const connRef = doc(db, `organizations/${orgId}/connections`, 'shopify');
+        batch.set(connRef, {
+          org_id: orgId,
+          platform: 'Shopify',
+          sync_status: 'Active',
+          last_successful_sync: new Date(),
+          orders_count: orders.length
+        }, { merge: true });
+
+        await batch.commit();
+        setSyncSuccess(`Successfully synced ${orders.length} Shopify orders!`);
         setTimeout(() => setSyncSuccess(null), 5000);
       } else {
         alert(`Integration with ${platformId} is coming soon!`);

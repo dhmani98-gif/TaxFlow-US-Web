@@ -22,15 +22,23 @@ async function startServer() {
   let dbAdmin: admin.firestore.Firestore | null = null;
   try {
     const firebaseConfig = JSON.parse(fs.readFileSync("./firebase-applet-config.json", "utf-8"));
-    if (!admin.apps.length) {
+    if (!admin.apps.length && process.env.FIREBASE_PRIVATE_KEY) {
       admin.initializeApp({
+        credential: admin.credential.cert({
+          projectId: firebaseConfig.projectId,
+          clientEmail: process.env.FIREBASE_CLIENT_EMAIL || '',
+          privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n') || '',
+        }),
         projectId: firebaseConfig.projectId,
       });
+      dbAdmin = admin.firestore();
+      console.log("Firebase Admin initialized successfully");
+    } else {
+      console.log("Firebase Admin skipped - using mock data mode");
     }
-    dbAdmin = admin.firestore(firebaseConfig.firestoreDatabaseId);
-    console.log("Firebase Admin initialized successfully");
   } catch (error: any) {
     console.error("Firebase Admin Initialization Error:", error.message);
+    console.log("Continuing without Firebase Admin (mock data mode)");
   }
 
   // Stripe Webhook handler (needs raw body)
@@ -127,78 +135,68 @@ async function startServer() {
     }
   });
 
-  // Shopify Simulation API
-  app.post("/api/simulate-shopify-sync", async (req, res) => {
+  // Shopify Sync API - Real Shopify data only (no mock data)
+  app.post("/api/shopify-sync", async (req, res) => {
     if (!dbAdmin) {
-      return res.status(500).json({ error: "Firebase Admin not initialized. Check server logs." });
+      return res.status(503).json({
+        error: "Firebase Admin not configured. Please add FIREBASE_PRIVATE_KEY to .env file.",
+        message: "Please use the client-side sync feature directly from the browser."
+      });
     }
     try {
-      const { userId } = req.body;
-      if (!userId) return res.status(400).json({ error: "User ID is required" });
+      const { userId, shopUrl, accessToken } = req.body;
+      if (!userId || !shopUrl || !accessToken) {
+        return res.status(400).json({ error: "User ID, Shop URL, and Access Token are required" });
+      }
+
+      // Fetch real orders from Shopify
+      const response = await fetch(`${shopUrl.replace(/\/$/, '')}/admin/api/2024-01/orders.json?status=any&limit=250`, {
+        headers: {
+          'X-Shopify-Access-Token': accessToken,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Shopify API Error: ${response.status} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      const orders = data.orders;
 
       const orgId = userId;
       const batch = dbAdmin.batch();
 
-      // 1. Create Organization if not exists
-      const orgRef = dbAdmin.collection('organizations').doc(orgId);
-      const orgDoc = await orgRef.get();
-      if (!orgDoc.exists) {
-        batch.set(orgRef, {
-          owner_id: orgId,
-          legal_name: 'My TaxFlow Org',
-          entity_type: 'LLC',
-          created_at: admin.firestore.FieldValue.serverTimestamp(),
-        });
-      }
+      // Save real Shopify orders to Firestore
+      orders.forEach((order: any) => {
+        const txRef = dbAdmin.collection(`organizations/${orgId}/transactions`).doc(`shopify_${order.id}`);
+        batch.set(txRef, {
+          org_id: orgId,
+          amount: parseFloat(order.total_price),
+          transaction_date: new Date(order.created_at),
+          state_code: order.shipping_address?.province_code || order.shipping_address?.state_code || 'N/A',
+          platform: 'Shopify',
+          description: `Order #${order.order_number} - ${order.customer?.first_name} ${order.customer?.last_name}`,
+          sourceId: order.id,
+          categoryId: 'sales'
+        }, { merge: true });
+      });
 
-      // 2. Create Connection
-      const connRef = dbAdmin.collection(`organizations/${orgId}/connections`).doc('shopify_sim');
+      // Update connection status
+      const connRef = dbAdmin.collection(`organizations/${orgId}/connections`).doc('shopify');
       batch.set(connRef, {
         org_id: orgId,
         platform: 'Shopify',
         sync_status: 'Active',
-        last_successful_sync: admin.firestore.FieldValue.serverTimestamp(),
-      });
-
-      // 2. Create Mock Transactions
-      const states = ['CA', 'TX', 'NY', 'FL', 'WA'];
-      for (let i = 0; i < 10; i++) {
-        const txRef = dbAdmin.collection(`organizations/${orgId}/transactions`).doc();
-        const amount = Math.floor(Math.random() * 5000) + 100;
-        batch.set(txRef, {
-          org_id: orgId,
-          amount: amount,
-          transaction_date: admin.firestore.FieldValue.serverTimestamp(),
-          state_code: states[Math.floor(Math.random() * states.length)],
-          platform: 'Shopify',
-          description: `Shopify Order #${1000 + i}`,
-          tax_amount: amount * 0.08,
-        });
-      }
-
-      // 3. Update Nexus Status (Mock)
-      const nexusStates = [
-        { code: 'CA', name: 'California', threshold: 100000 },
-        { code: 'NY', name: 'New York', threshold: 100000 },
-      ];
-
-      for (const state of nexusStates) {
-        const nexusRef = dbAdmin.collection(`organizations/${orgId}/nexus`).doc(state.code);
-        const totalSales = Math.floor(Math.random() * 120000);
-        batch.set(nexusRef, {
-          org_id: orgId,
-          state_code: state.code,
-          state_name: state.name,
-          total_sales: totalSales,
-          threshold_amount: state.threshold,
-          status: totalSales > state.threshold ? 'EXCEEDED' : (totalSales > state.threshold * 0.8 ? 'WARNING' : 'SAFE'),
-        });
-      }
+        last_successful_sync: new Date(),
+        orders_count: orders.length
+      }, { merge: true });
 
       await batch.commit();
-      res.json({ success: true, message: "Shopify simulation synced successfully" });
+      res.json({ success: true, ordersCount: orders.length });
     } catch (error: any) {
-      console.error("Simulation Error:", error.message);
+      console.error("Shopify Sync Error:", error);
       res.status(500).json({ error: error.message });
     }
   });
