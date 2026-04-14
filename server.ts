@@ -136,7 +136,7 @@ async function startServer() {
       const { userId } = req.body;
       if (!userId) return res.status(400).json({ error: "User ID is required" });
 
-      const orgId = userId; // Using UID as orgId for demo
+      const orgId = userId;
       const batch = dbAdmin.batch();
 
       // 1. Create Organization if not exists

@@ -30,7 +30,6 @@ export default function Dashboard() {
     const user = auth.currentUser;
     if (!user) return;
 
-    // Use the user's UID as the orgId for this demo
     const orgId = user.uid; 
 
     const txQuery = query(
@@ -186,38 +185,45 @@ export default function Dashboard() {
           </div>
           
           <div className="space-y-6">
-            {nexusStatus.length > 0 ? nexusStatus.map((state) => (
-              <div key={state.state_code} className="space-y-2">
-                <div className="flex justify-between items-end">
-                  <div>
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{state.state_code}</span>
-                    <h4 className="font-semibold text-slate-300">{state.state_name}</h4>
+            {nexusStatus.length > 0 ? nexusStatus.map((state) => {
+              const percentage = Math.min((state.total_sales / state.threshold_amount) * 100, 100);
+              return (
+                <div key={state.state_code} className="space-y-2 group cursor-pointer">
+                  <div className="flex justify-between items-end">
+                    <div>
+                      <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{state.state_code}</span>
+                      <h4 className="font-semibold text-slate-300 group-hover:text-white transition-colors">{state.state_name}</h4>
+                    </div>
+                    <div className="text-right">
+                      <span className={cn(
+                        "text-[10px] font-black px-2 py-0.5 rounded-full uppercase transition-all",
+                        state.status === 'SAFE' && "bg-green-500/10 text-green-500 group-hover:bg-green-500/20",
+                        state.status === 'WARNING' && "bg-amber-500/10 text-amber-500 group-hover:bg-amber-500/20",
+                        state.status === 'EXCEEDED' && "bg-red-500/10 text-red-500 group-hover:bg-red-500/20"
+                      )}>
+                        {state.status}
+                      </span>
+                      <p className="text-sm font-mono mt-1 text-white">{formatCurrency(state.total_sales)} / {formatCurrency(state.threshold_amount)}</p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <span className={cn(
-                      "text-[10px] font-black px-2 py-0.5 rounded-full uppercase",
-                      state.status === 'SAFE' && "bg-green-500/10 text-green-500",
-                      state.status === 'WARNING' && "bg-amber-500/10 text-amber-500",
-                      state.status === 'EXCEEDED' && "bg-red-500/10 text-red-500"
-                    )}>
-                      {state.status}
-                    </span>
-                    <p className="text-sm font-mono mt-1 text-white">{formatCurrency(state.total_sales)} / {formatCurrency(state.threshold_amount)}</p>
+                  <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden group-hover:bg-white/10 transition-colors">
+                    <div
+                      className={cn(
+                        "h-full transition-all duration-1000 group-hover:brightness-125 cursor-pointer",
+                        state.status === 'SAFE' && "bg-green-500 shadow-[0_0_20px_rgba(34,197,94,0.5)] group-hover:shadow-[0_0_30px_rgba(34,197,94,0.8)]",
+                        state.status === 'WARNING' && "bg-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.5)] group-hover:shadow-[0_0_30px_rgba(245,158,11,0.8)]",
+                        state.status === 'EXCEEDED' && "bg-red-500 shadow-[0_0_20px_rgba(239,68,68,0.5)] group-hover:shadow-[0_0_30px_rgba(239,68,68,0.8)]"
+                      )}
+                      style={{ width: `${percentage}%` }}
+                      title={`${percentage.toFixed(1)}% of threshold`}
+                    />
+                  </div>
+                  <div className="text-[10px] text-slate-500 font-mono opacity-0 group-hover:opacity-100 transition-opacity">
+                    {percentage.toFixed(1)}% of nexus threshold
                   </div>
                 </div>
-                <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
-                  <div 
-                    className={cn(
-                      "h-full transition-all duration-1000",
-                      state.status === 'SAFE' && "bg-green-500",
-                      state.status === 'WARNING' && "bg-amber-500",
-                      state.status === 'EXCEEDED' && "bg-red-500"
-                    )}
-                    style={{ width: `${Math.min((state.total_sales / state.threshold_amount) * 100, 100)}%` }}
-                  />
-                </div>
-              </div>
-            )) : (
+              );
+            }) : (
               <p className="text-sm text-slate-500 text-center py-8">No nexus data found in Firestore.</p>
             )}
           </div>
