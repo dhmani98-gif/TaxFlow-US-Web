@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { db, auth } from '../firebase';
-import { collection, onSnapshot, doc, getDoc, setDoc, writeBatch } from 'firebase/firestore';
+import { collection, onSnapshot } from 'firebase/firestore';
 
 const platforms = [
   { id: 'Shopify', name: 'Shopify', icon: ShoppingBag, color: 'text-green-500', bg: 'bg-green-500/10' },
@@ -52,88 +52,33 @@ export default function Integrations() {
       return;
     }
 
-    console.log('User authenticated:', user.uid);
     setSyncingId(platformId);
     setSyncSuccess(null);
     try {
       if (platformId === 'Shopify') {
-        // Get Shopify credentials from settings
-        const settingsDoc = await getDoc(doc(db, 'users', user.uid, 'settings', 'config'));
-        const settings = settingsDoc.data();
-
-        if (!settings?.shopifyShopUrl || !settings?.shopifyAccessToken) {
-          alert('Please configure Shopify credentials in Settings first (Shop URL & Access Token)');
-          setSyncingId(null);
-          return;
-        }
-
-        console.log('Shopify credentials found');
-
-        // Real Shopify API call
-        const shopUrl = settings.shopifyShopUrl.replace(/\/$/, '');
-        console.log('Calling Shopify API:', shopUrl);
-        const response = await fetch(`${shopUrl}/admin/api/2024-01/orders.json?status=any`, {
+        // Use server API instead of direct Firestore write
+        const response = await fetch('/api/simulate-shopify-sync', {
+          method: 'POST',
           headers: {
-            'X-Shopify-Access-Token': settings.shopifyAccessToken,
             'Content-Type': 'application/json'
-          }
+          },
+          body: JSON.stringify({ userId: user.uid })
         });
 
         if (!response.ok) {
           const errorText = await response.text();
-          console.error('Shopify API Error:', response.status, errorText);
-          throw new Error(`Shopify API Error: ${response.status} - ${errorText}`);
+          throw new Error(`Server Error: ${response.status} - ${errorText}`);
         }
 
         const data = await response.json();
-        const orders = data.orders;
-        console.log('Orders fetched:', orders.length);
-
-        // Save orders to Firestore
-        const batch = writeBatch(db);
-        const orgId = user.uid;
-        console.log('Writing to Firestore for org:', orgId);
-
-        orders.forEach((order: any) => {
-          const txRef = doc(db, `organizations/${orgId}/transactions`, `shopify_${order.id}`);
-          batch.set(txRef, {
-            org_id: orgId,
-            amount: order.total_price,
-            transaction_date: new Date(order.created_at),
-            state_code: order.shipping_address?.state_code || 'N/A',
-            platform: 'Shopify',
-            description: `Order #${order.order_number}`,
-            sourceId: order.id,
-            categoryId: 'sales'
-          }, { merge: true });
-        });
-
-        // Update connection status
-        const connRef = doc(db, `organizations/${orgId}/connections`, 'shopify');
-        batch.set(connRef, {
-          org_id: orgId,
-          platform: 'Shopify',
-          sync_status: 'Active',
-          last_successful_sync: new Date(),
-          orders_count: orders.length
-        }, { merge: true });
-
-        console.log('Committing batch to Firestore...');
-        await batch.commit();
-        console.log('Batch committed successfully');
-        setSyncSuccess(`Successfully synced ${orders.length} Shopify orders!`);
+        setSyncSuccess(`Successfully synced ${data.ordersCount} Shopify orders!`);
         setTimeout(() => setSyncSuccess(null), 5000);
       } else {
         alert(`Integration with ${platformId} is coming soon!`);
       }
     } catch (error: any) {
       console.error("Sync Error:", error);
-      console.error("Error details:", {
-        message: error.message,
-        code: error.code,
-        stack: error.stack
-      });
-      alert(`Sync failed: ${error.message}\n\nCheck console for details.`);
+      alert(`Sync failed: ${error.message}`);
     } finally {
       setSyncingId(null);
     }
