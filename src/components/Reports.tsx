@@ -19,7 +19,7 @@ import { calculateScheduleC } from '../lib/scheduleCMappings';
 import { calculateSalesTaxSummary, getNexusStatus } from '../lib/salesTaxLogic';
 import { calculateReconciliation } from '../lib/reconciliationEngine';
 import { exportScheduleCToExcel, exportSalesTaxToExcel, exportReconciliationToExcel } from '../lib/exportToExcel';
-// import { exportScheduleCToPDF, exportSalesTaxToPDF, exportReconciliationToPDF } from '../lib/exportToPDF';
+import { exportScheduleCToPDF, exportSalesTaxToPDF, exportReconciliationToPDF } from '../lib/exportToPDF';
 
 const reports = [
   {
@@ -79,22 +79,31 @@ export default function Reports() {
       switch (reportId) {
         case 'schedule-c':
           const scheduleC = calculateScheduleC(transactions);
-          exportScheduleCToExcel(scheduleC);
-          alert('PDF export coming soon. Excel export downloaded.');
+          if (format === 'excel') {
+            exportScheduleCToExcel(scheduleC);
+          } else {
+            exportScheduleCToPDF(scheduleC);
+          }
           break;
 
         case 'sales-tax':
           const salesTax = calculateSalesTaxSummary(transactions);
-          exportSalesTaxToExcel(salesTax);
-          alert('PDF export coming soon. Excel export downloaded.');
+          if (format === 'excel') {
+            exportSalesTaxToExcel(salesTax);
+          } else {
+            exportSalesTaxToPDF(salesTax);
+          }
           break;
 
         case '1099-nec':
           const stripeTx = transactions.filter(t => t.platform === 'Stripe');
           const bankTx = transactions.filter(t => t.platform === 'Bank');
           const reconciliation = calculateReconciliation(stripeTx, bankTx);
-          exportReconciliationToExcel(reconciliation);
-          alert('PDF export coming soon. Excel export downloaded.');
+          if (format === 'excel') {
+            exportReconciliationToExcel(reconciliation);
+          } else {
+            exportReconciliationToPDF(reconciliation);
+          }
           break;
       }
     } catch (error) {
