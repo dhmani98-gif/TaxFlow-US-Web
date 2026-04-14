@@ -1,34 +1,6 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // ===============================================================
-    // Assumed Data Model
-    // ===============================================================
-    //
-    // Collection: organizations
-    // Document ID: orgId
-    // Fields:
-    //   - owner_id: string (required) - UID of the owner
-    //   - legal_name: string (required)
-    //   - entity_type: string (required, enum)
-    //   - tax_id_ein: string (optional)
-    //
-    // Collection: organizations/{orgId}/connections
-    // Fields:
-    //   - org_id: string (required)
-    //   - platform: string (required, enum)
-    //   - sync_status: string (required)
-    //
-    // Collection: organizations/{orgId}/transactions
-    // Fields:
-    //   - org_id: string (required)
-    //   - amount: number (required)
-    //   - transaction_date: timestamp (required)
-    //
-    // ===============================================================
-
-    // Helper Functions
     function isAuthenticated() {
       return request.auth != null;
     }
@@ -37,33 +9,10 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    function isOrgOwner(orgId) {
-      return isAuthenticated() && request.auth.uid == orgId;
-    }
-
-    // Validation Functions
-    function isValidOrg(data) {
-      return data.keys().hasAll(['owner_id', 'legal_name', 'entity_type']) &&
-             data.owner_id is string &&
-             data.legal_name is string && data.legal_name.size() < 200 &&
-             data.entity_type in ['LLC', 'S-Corp', 'C-Corp', 'Sole_Proprietorship'];
-    }
-
-    function isValidConnection(data) {
-      return data.keys().hasAll(['org_id', 'platform', 'sync_status']) &&
-             data.platform in ['Shopify', 'Amazon', 'Stripe', 'Bank'];
-    }
-
-    function isValidTransaction(data) {
-      return data.keys().hasAll(['org_id', 'amount', 'transaction_date']) &&
-             data.amount is number;
-    }
-
-    // Rules
     match /organizations/{orgId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && isValidOrg(request.resource.data);
-      allow update: if isAuthenticated() && isValidOrg(request.resource.data);
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated();
 
       match /connections/{connId} {
         allow read, write: if isAuthenticated();
@@ -80,10 +29,8 @@ service cloud.firestore {
 
     match /subscriptions/{userId} {
       allow read: if isOwner(userId);
-      // Write is handled via server-side admin SDK
     }
 
-    // Default deny
     match /{document=**} {
       allow read, write: if false;
     }
