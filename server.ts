@@ -80,23 +80,34 @@ async function startServer() {
   app.post("/api/create-checkout-session", async (req, res) => {
     try {
       const { userId, planId } = req.body;
-      
+
+      // Map plan IDs to prices (in cents)
+      const planPrices: Record<string, number> = {
+        'Starter': 2900,  // $29
+        'Growth': 7900,   // $79
+        'Enterprise': 19900 // $199
+      };
+
+      const unitAmount = planPrices[planId] || 7900;
+      const planName = planId || 'Growth';
+
       const session = await stripe.checkout.sessions.create({
         mode: 'subscription',
         payment_method_types: ['card'],
+        currency: 'usd', // Force USD currency
         metadata: {
           userId: userId || 'anonymous',
-          planId: planId || 'growth',
+          planId: planName,
         },
         line_items: [
           {
             price_data: {
               currency: 'usd',
               product_data: {
-                name: `TaxFlow US - ${planId || 'Growth'} Plan`,
-                description: 'Unlimited transactions & Advanced Nexus Sentinel',
+                name: `TaxFlow US - ${planName} Plan`,
+                description: planId === 'Starter' ? 'Up to 500 transactions/mo & Basic Nexus monitoring' : 'Unlimited transactions & Advanced Nexus Sentinel',
               },
-              unit_amount: planId === 'Enterprise' ? 19900 : 7900,
+              unit_amount: unitAmount,
               recurring: {
                 interval: 'month',
               },
