@@ -147,7 +147,7 @@ export default function Dashboard() {
         <div className="lg:col-span-2 card bg-carbon border-white/5 p-6">
           <div className="flex items-center justify-between mb-6">
             <h3 className="font-bold text-lg text-white">Revenue vs Expenses</h3>
-            <select className="bg-white/5 border border-white/5 rounded-lg px-3 py-1 text-sm outline-none text-slate-400">
+            <select className="bg-carbon border border-electric/50 rounded-lg px-3 py-1 text-sm outline-none text-white">
               <option>Last 3 Months</option>
               <option>Year to Date</option>
             </select>

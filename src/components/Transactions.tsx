@@ -191,17 +191,17 @@ export default function Transactions() {
             <form className="space-y-4">
               <div>
                 <label className="block text-sm font-bold text-slate-400 mb-2">Date</label>
-                <input type="date" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg outline-none focus:ring-2 focus:ring-electric/20 focus:border-electric text-white" />
+                <input type="date" className="w-full px-4 py-3 bg-carbon border border-electric/50 rounded-lg outline-none focus:ring-2 focus:ring-electric/50 focus:border-electric text-white" />
               </div>
 
               <div>
                 <label className="block text-sm font-bold text-slate-400 mb-2">Description</label>
-                <input type="text" placeholder="e.g., Office Supplies" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg outline-none focus:ring-2 focus:ring-electric/20 focus:border-electric text-white" />
+                <input type="text" placeholder="e.g., Office Supplies" className="w-full px-4 py-3 bg-carbon border border-electric/50 rounded-lg outline-none focus:ring-2 focus:ring-electric/50 focus:border-electric text-white" />
               </div>
 
               <div>
                 <label className="block text-sm font-bold text-slate-400 mb-2">Category</label>
-                <select className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg outline-none focus:ring-2 focus:ring-electric/20 focus:border-electric text-white">
+                <select className="w-full px-4 py-3 bg-carbon border border-electric/50 rounded-lg outline-none focus:ring-2 focus:ring-electric/50 focus:border-electric text-white">
                   <option value="">Select category</option>
                   <option value="sales">Sales Income</option>
                   <option value="advertising">Advertising</option>
@@ -214,12 +214,12 @@ export default function Transactions() {
 
               <div>
                 <label className="block text-sm font-bold text-slate-400 mb-2">Amount</label>
-                <input type="number" placeholder="0.00" step="0.01" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg outline-none focus:ring-2 focus:ring-electric/20 focus:border-electric text-white" />
+                <input type="number" placeholder="0.00" step="0.01" className="w-full px-4 py-3 bg-carbon border border-electric/50 rounded-lg outline-none focus:ring-2 focus:ring-electric/50 focus:border-electric text-white" />
               </div>
 
               <div>
                 <label className="block text-sm font-bold text-slate-400 mb-2">Source</label>
-                <select className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg outline-none focus:ring-2 focus:ring-electric/20 focus:border-electric text-white">
+                <select className="w-full px-4 py-3 bg-carbon border border-electric/50 rounded-lg outline-none focus:ring-2 focus:ring-electric/50 focus:border-electric text-white">
                   <option value="">Select source</option>
                   <option value="Bank">Bank</option>
                   <option value="Shopify">Shopify</option>

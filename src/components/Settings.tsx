@@ -158,7 +158,7 @@ export default function Settings() {
                     type="text"
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg outline-none focus:ring-2 focus:ring-electric/20 focus:border-electric text-white"
+                    className="w-full px-4 py-3 bg-carbon border border-electric/50 rounded-lg outline-none focus:ring-2 focus:ring-electric/50 focus:border-electric text-white"
                   />
                 </div>
 
@@ -168,7 +168,7 @@ export default function Settings() {
                     type="email"
                     value={email}
                     disabled
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg outline-none text-slate-500 cursor-not-allowed"
+                    className="w-full px-4 py-3 bg-carbon border border-electric/50 rounded-lg outline-none text-slate-500 cursor-not-allowed"
                   />
                   <p className="text-xs text-slate-500 mt-1">Email cannot be changed</p>
                 </div>
@@ -194,7 +194,7 @@ export default function Settings() {
                   <select
                     value={currency}
                     onChange={(e) => setCurrency(e.target.value)}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg outline-none focus:ring-2 focus:ring-electric/20 focus:border-electric text-white"
+                    className="w-full px-4 py-3 bg-carbon border border-electric/50 rounded-lg outline-none focus:ring-2 focus:ring-electric/50 focus:border-electric text-white"
                   >
                     <option value="USD">USD - US Dollar</option>
                     <option value="EUR">EUR - Euro</option>
@@ -212,7 +212,7 @@ export default function Settings() {
                     min="0"
                     max="100"
                     step="0.1"
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg outline-none focus:ring-2 focus:ring-electric/20 focus:border-electric text-white"
+                    className="w-full px-4 py-3 bg-carbon border border-electric/50 rounded-lg outline-none focus:ring-2 focus:ring-electric/50 focus:border-electric text-white"
                   />
                   <p className="text-xs text-slate-500 mt-1">Used for tax estimation calculations</p>
                 </div>
@@ -247,7 +247,7 @@ export default function Settings() {
                       placeholder="https://your-shop.myshopify.com"
                       value={shopifyShopUrl}
                       onChange={(e) => setShopifyShopUrl(e.target.value)}
-                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg outline-none focus:ring-2 focus:ring-electric/20 focus:border-electric text-white"
+                      className="w-full px-4 py-3 bg-carbon border border-electric/50 rounded-lg outline-none focus:ring-2 focus:ring-electric/50 focus:border-electric text-white"
                     />
                   </div>
 
@@ -258,7 +258,7 @@ export default function Settings() {
                       placeholder="shpat_xxxxxxxx"
                       value={shopifyAccessToken}
                       onChange={(e) => setShopifyAccessToken(e.target.value)}
-                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg outline-none focus:ring-2 focus:ring-electric/20 focus:border-electric text-white"
+                      className="w-full px-4 py-3 bg-carbon border border-electric/50 rounded-lg outline-none focus:ring-2 focus:ring-electric/50 focus:border-electric text-white"
                     />
                     <p className="text-xs text-slate-500 mt-1">
                       Get this from Shopify Admin → Settings → Apps and sales channels → Develop apps → Create custom app
@@ -280,7 +280,7 @@ export default function Settings() {
                       placeholder="pk_test_xxxxxxxx"
                       value={stripePublicKey}
                       onChange={(e) => setStripePublicKey(e.target.value)}
-                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg outline-none focus:ring-2 focus:ring-electric/20 focus:border-electric text-white"
+                      className="w-full px-4 py-3 bg-carbon border border-electric/50 rounded-lg outline-none focus:ring-2 focus:ring-electric/50 focus:border-electric text-white"
                     />
                   </div>
 
@@ -291,7 +291,7 @@ export default function Settings() {
                       placeholder="sk_test_xxxxxxxx"
                       value={stripeSecretKey}
                       onChange={(e) => setStripeSecretKey(e.target.value)}
-                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg outline-none focus:ring-2 focus:ring-electric/20 focus:border-electric text-white"
+                      className="w-full px-4 py-3 bg-carbon border border-electric/50 rounded-lg outline-none focus:ring-2 focus:ring-electric/50 focus:border-electric text-white"
                     />
                     <p className="text-xs text-slate-500 mt-1">
                       Get this from Stripe Dashboard → Developers → API keys
