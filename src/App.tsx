@@ -19,6 +19,7 @@ export default function App() {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [showLogin, setShowLogin] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
@@ -75,10 +76,27 @@ export default function App() {
             </div>
             
             <div className="flex items-center gap-6">
-              <button className="relative p-2 text-slate-500 hover:text-white transition-colors">
-                <Bell size={20} />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-electric rounded-full border-2 border-carbon"></span>
-              </button>
+              <div className="relative">
+                <button 
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  className="relative p-2 text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  <Bell size={20} />
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-electric rounded-full border-2 border-carbon"></span>
+                </button>
+
+                {/* Notification Dropdown */}
+                {showNotifications && (
+                  <div className="absolute right-0 mt-2 w-80 bg-carbon border border-electric/30 rounded-xl shadow-xl shadow-electric/20 z-50">
+                    <div className="p-4 border-b border-white/5">
+                      <h4 className="font-bold text-white">Notifications</h4>
+                    </div>
+                    <div className="p-4">
+                      <p className="text-sm text-slate-500 text-center">No new notifications</p>
+                    </div>
+                  </div>
+                )}
+              </div>
               
               <div className="h-8 w-px bg-white/5"></div>
               
