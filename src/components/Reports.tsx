@@ -83,7 +83,7 @@ export default function Reports() {
           if (format === 'excel') {
             exportScheduleCToExcel(scheduleC);
           } else {
-            exportScheduleCToPDF(scheduleC);
+            exportScheduleCToPDF(scheduleC, transactions);
           }
           break;
 

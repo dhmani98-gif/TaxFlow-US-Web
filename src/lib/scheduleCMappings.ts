@@ -334,11 +334,13 @@ export function calculateScheduleC(transactions: any[]): ScheduleCResult {
       if (category === 'refund' || tx.description?.toLowerCase().includes('refund')) {
         refunds += expenseAmount;
       } else {
+        // This is a regular expense - add to the mapped line
         lineItems[line] = (lineItems[line] || 0) + expenseAmount;
       }
     } else {
       // Income
-      if (line === '1') {
+      // Sum all positive transactions as Sales Income (Line 1)
+      if (line === '1' || category.includes('sales') || category.includes('income') || category === 'shopify_sales' || category === 'stripe_sales' || category === 'amazon_sales') {
         grossSales += tx.amount;
         lineItems[line] = (lineItems[line] || 0) + tx.amount;
       }
@@ -351,10 +353,11 @@ export function calculateScheduleC(transactions: any[]): ScheduleCResult {
   const line4_costOfGoodsSold = lineItems['4'] || 0;
   const line7_grossProfit = line3_netReceipts - line4_costOfGoodsSold;
 
-  // Sum all expense lines (8-28)
+  // Sum all expense lines (8-28) - all expense categories
   const expenseLines = ['8', '20a', '20b', '21', '22', '23', '24a', '24b', '25', '26', '27', '28a', '28b'];
   const line28_totalExpenses = expenseLines.reduce((sum, line) => sum + (lineItems[line] || 0), 0);
 
+  // Auto-calculate Line 29 (Net Profit) = Line 7 (Gross Profit) - Line 28 (Total Expenses)
   const line29_netProfit = line7_grossProfit - line28_totalExpenses;
 
   // Build line items array
