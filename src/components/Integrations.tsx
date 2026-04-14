@@ -47,8 +47,12 @@ export default function Integrations() {
 
   const handleConnect = async (platformId: string) => {
     const user = auth.currentUser;
-    if (!user) return;
+    if (!user) {
+      alert('Please log in first');
+      return;
+    }
 
+    console.log('User authenticated:', user.uid);
     setSyncingId(platformId);
     setSyncSuccess(null);
     try {
@@ -63,8 +67,11 @@ export default function Integrations() {
           return;
         }
 
+        console.log('Shopify credentials found');
+
         // Real Shopify API call
         const shopUrl = settings.shopifyShopUrl.replace(/\/$/, '');
+        console.log('Calling Shopify API:', shopUrl);
         const response = await fetch(`${shopUrl}/admin/api/2024-01/orders.json?status=any`, {
           headers: {
             'X-Shopify-Access-Token': settings.shopifyAccessToken,
@@ -73,15 +80,19 @@ export default function Integrations() {
         });
 
         if (!response.ok) {
-          throw new Error(`Shopify API Error: ${response.status}`);
+          const errorText = await response.text();
+          console.error('Shopify API Error:', response.status, errorText);
+          throw new Error(`Shopify API Error: ${response.status} - ${errorText}`);
         }
 
         const data = await response.json();
         const orders = data.orders;
+        console.log('Orders fetched:', orders.length);
 
         // Save orders to Firestore
         const batch = writeBatch(db);
         const orgId = user.uid;
+        console.log('Writing to Firestore for org:', orgId);
 
         orders.forEach((order: any) => {
           const txRef = doc(db, `organizations/${orgId}/transactions`, `shopify_${order.id}`);
@@ -107,7 +118,9 @@ export default function Integrations() {
           orders_count: orders.length
         }, { merge: true });
 
+        console.log('Committing batch to Firestore...');
         await batch.commit();
+        console.log('Batch committed successfully');
         setSyncSuccess(`Successfully synced ${orders.length} Shopify orders!`);
         setTimeout(() => setSyncSuccess(null), 5000);
       } else {
@@ -115,7 +128,12 @@ export default function Integrations() {
       }
     } catch (error: any) {
       console.error("Sync Error:", error);
-      alert(`Sync failed: ${error.message}`);
+      console.error("Error details:", {
+        message: error.message,
+        code: error.code,
+        stack: error.stack
+      });
+      alert(`Sync failed: ${error.message}\n\nCheck console for details.`);
     } finally {
       setSyncingId(null);
     }
