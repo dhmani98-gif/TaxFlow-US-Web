@@ -11,8 +11,7 @@ import {
   Package
 } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { db, auth } from '../firebase';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { auth, db } from '../lib/supabase';
 import { calculateScheduleC } from '../lib/scheduleCMappings';
 import { calculateSalesTaxSummary, getNexusStatus } from '../lib/salesTaxLogic';
 import { calculateReconciliation } from '../lib/reconciliationEngine';
@@ -40,7 +39,11 @@ const reports = [
   },
 ];
 
-export default function Reports() {
+interface ReportsProps {
+  userId?: string;
+}
+
+export default function Reports({ userId }: ReportsProps) {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [selectedReport, setSelectedReport] = useState<string | null>(null);
   const [exportFormat, setExportFormat] = useState<'pdf' | 'excel' | null>(null);
@@ -48,23 +51,29 @@ export default function Reports() {
   const [clientInfo, setClientInfo] = useState<{ storeName?: string; taxId?: string }>({});
 
   useEffect(() => {
-    const user = auth.currentUser;
-    if (!user) return;
+    const loadTransactions = async () => {
+      if (!userId) {
+        setLoading(false);
+        return;
+      }
 
-    const orgId = user.uid;
-    const txQuery = collection(db, `organizations/${orgId}/transactions`);
+      try {
+        const orgs = await db.getOrganizations(userId);
+        if (orgs.length === 0) {
+          setLoading(false);
+          return;
+        }
+        const txs = await db.getTransactions(orgs[0].id);
+        setTransactions(txs);
+      } catch (err) {
+        console.error("Supabase Error (Transactions):", err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    const unsub = onSnapshot(txQuery, (snapshot) => {
-      const txs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setTransactions(txs);
-      setLoading(false);
-    }, (err) => {
-      console.error("Firestore Error (Transactions):", err);
-      setLoading(false);
-    });
-
-    return () => unsub();
-  }, []);
+    loadTransactions();
+  }, [userId]);
 
   const handleGenerateReport = (reportId: string, format: 'pdf' | 'excel') => {
     setSelectedReport(reportId);

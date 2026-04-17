@@ -7,11 +7,13 @@ import {
   RefreshCw,
   CheckCircle2,
   ExternalLink,
-  Loader2
+  Loader2,
+  X,
+  Save,
+  Key
 } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { db, auth } from '../firebase';
-import { collection, onSnapshot, doc, getDoc, writeBatch } from 'firebase/firestore';
+import { auth, db } from '../lib/supabase';
 
 const platforms = [
   { id: 'Shopify', name: 'Shopify', icon: ShoppingBag, color: 'text-green-500', bg: 'bg-green-500/10' },
@@ -20,108 +22,97 @@ const platforms = [
   { id: 'Bank', name: 'Business Bank', icon: Building2, color: 'text-blue-500', bg: 'bg-blue-500/10' },
 ];
 
-export default function Integrations() {
+interface IntegrationsProps {
+  userId?: string;
+}
+
+export default function Integrations({ userId }: IntegrationsProps) {
   const [connections, setConnections] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [syncSuccess, setSyncSuccess] = useState<string | null>(null);
+  const [showModal, setShowModal] = useState(false);
+  const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
+  const [modalSaving, setModalSaving] = useState(false);
+  
+  // Modal form state
+  const [shopUrl, setShopUrl] = useState('');
+  const [accessToken, setAccessToken] = useState('');
+  const [apiKey, setApiKey] = useState('');
+  const [secretKey, setSecretKey] = useState('');
 
   useEffect(() => {
-    const user = auth.currentUser;
-    if (!user) return;
-
-    const orgId = user.uid;
-    const connQuery = collection(db, `organizations/${orgId}/connections`);
-
-    const unsub = onSnapshot(connQuery, (snapshot) => {
-      const conns = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setConnections(conns);
-      setLoading(false);
-    }, (err) => {
-      console.error("Firestore Error (Connections):", err);
-      setLoading(false);
-    });
-
-    return () => unsub();
+    loadConnections();
   }, []);
 
-  const handleConnect = async (platformId: string) => {
-    const user = auth.currentUser;
-    if (!user) {
-      alert('Please log in first');
-      return;
-    }
-
-    setSyncingId(platformId);
-    setSyncSuccess(null);
+  const loadConnections = async () => {
     try {
-      if (platformId === 'Shopify') {
-        // Get Shopify credentials from settings
-        const settingsDoc = await getDoc(doc(db, 'users', user.uid, 'settings', 'config'));
-        const settings = settingsDoc.data();
-
-        if (!settings?.shopifyShopUrl || !settings?.shopifyAccessToken) {
-          alert('Please configure Shopify credentials in Settings first (Shop URL & Access Token)');
-          setSyncingId(null);
-          return;
-        }
-
-        // Real Shopify API call
-        const shopUrl = settings.shopifyShopUrl.replace(/\/$/, '');
-        const response = await fetch(`${shopUrl}/admin/api/2024-01/orders.json?status=any&limit=250`, {
-          headers: {
-            'X-Shopify-Access-Token': settings.shopifyAccessToken,
-            'Content-Type': 'application/json'
-          }
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`Shopify API Error: ${response.status} - ${errorText}`);
-        }
-
-        const data = await response.json();
-        const orders = data.orders;
-
-        // Save orders to Firestore using client-side
-        const batch = writeBatch(db);
-        const orgId = user.uid;
-
-        orders.forEach((order: any) => {
-          const txRef = doc(db, `organizations/${orgId}/transactions`, `shopify_${order.id}`);
-          batch.set(txRef, {
-            org_id: orgId,
-            amount: parseFloat(order.total_price),
-            transaction_date: new Date(order.created_at),
-            state_code: order.shipping_address?.province_code || order.shipping_address?.state_code || 'N/A',
-            platform: 'Shopify',
-            description: `Order #${order.order_number} - ${order.customer?.first_name} ${order.customer?.last_name}`,
-            sourceId: order.id,
-            categoryId: 'sales'
-          }, { merge: true });
-        });
-
-        // Update connection status
-        const connRef = doc(db, `organizations/${orgId}/connections`, 'shopify');
-        batch.set(connRef, {
-          org_id: orgId,
-          platform: 'Shopify',
-          sync_status: 'Active',
-          last_successful_sync: new Date(),
-          orders_count: orders.length
-        }, { merge: true });
-
-        await batch.commit();
-        setSyncSuccess(`Successfully synced ${orders.length} Shopify orders!`);
-        setTimeout(() => setSyncSuccess(null), 5000);
-      } else {
-        alert(`Integration with ${platformId} is coming soon!`);
+      if (!userId) {
+        setLoading(false);
+        return;
       }
+
+      const orgs = await db.getOrganizations(userId);
+      if (orgs.length === 0) {
+        setLoading(false);
+        return;
+      }
+      const conns = await db.getConnections(orgs[0].id);
+      setConnections(conns);
+      setLoading(false);
+    } catch (err) {
+      console.error("Supabase Error (Connections):", err);
+      setLoading(false);
+    }
+  };
+
+  const handleConnect = (platformId: string) => {
+    setSelectedPlatform(platformId);
+    setShowModal(true);
+    // Reset form to empty - never show saved credentials
+    setShopUrl('');
+    setAccessToken('');
+    setApiKey('');
+    setSecretKey('');
+  };
+
+  const handleModalSave = async () => {
+    if (!userId || !selectedPlatform) return;
+
+    setModalSaving(true);
+    try {
+      const orgs = await db.getOrganizations(userId);
+      if (orgs.length === 0) {
+        alert('No organization found');
+        return;
+      }
+      const orgId = orgs[0].id;
+
+      // Save connection credentials
+      const settings: any = {};
+      if (selectedPlatform === 'Shopify') {
+        settings.shop_url = shopUrl;
+        settings.access_token = accessToken;
+      } else if (selectedPlatform === 'Stripe') {
+        settings.api_key = apiKey;
+        settings.secret_key = secretKey;
+      }
+
+      await db.updateConnection(orgId, selectedPlatform, {
+        sync_status: 'connected',
+        settings,
+        last_successful_sync: new Date().toISOString(),
+      });
+
+      setSyncSuccess(selectedPlatform);
+      setShowModal(false);
+      loadConnections();
+      setTimeout(() => setSyncSuccess(null), 3000);
     } catch (error: any) {
-      console.error("Sync Error:", error);
-      alert(`Sync failed: ${error.message}`);
+      console.error('Connection Error:', error);
+      alert(`Connection failed: ${error.message}`);
     } finally {
-      setSyncingId(null);
+      setModalSaving(false);
     }
   };
 
@@ -237,6 +228,122 @@ export default function Integrations() {
           <RefreshCw size={300} className="text-electric" />
         </div>
       </div>
+
+      {/* Connection Modal */}
+      {showModal && selectedPlatform && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200">
+          <div className="card bg-carbon border border-white/10 p-8 rounded-2xl w-full max-w-md mx-4 animate-in zoom-in duration-200">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-electric/10 rounded-lg">
+                  <Key className="text-electric" size={20} />
+                </div>
+                <h3 className="text-xl font-bold text-white">Connect {selectedPlatform}</h3>
+              </div>
+              <button
+                onClick={() => setShowModal(false)}
+                className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+              >
+                <X className="text-slate-400" size={20} />
+              </button>
+            </div>
+
+            <form autoComplete="off" onSubmit={(e) => { e.preventDefault(); handleModalSave(); }}>
+              {selectedPlatform === 'Shopify' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-400 mb-2">Shop URL</label>
+                    <input
+                      type="text"
+                      name="shop-url-field"
+                      placeholder="https://your-shop.myshopify.com"
+                      value={shopUrl}
+                      onChange={(e) => setShopUrl(e.target.value)}
+                      className="w-full px-4 py-3 bg-[#111] border border-white/10 rounded-lg outline-none focus:ring-2 focus:ring-electric/50 focus:border-electric text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-400 mb-2">Access Token</label>
+                    <input
+                      type="text"
+                      name="token-field"
+                      placeholder="shpat_xxxxxxxx"
+                      value={accessToken}
+                      onChange={(e) => setAccessToken(e.target.value)}
+                      className="w-full px-4 py-3 bg-[#111] border border-white/10 rounded-lg outline-none focus:ring-2 focus:ring-electric/50 focus:border-electric text-white"
+                    />
+                    <p className="text-xs text-slate-500 mt-1">
+                      Get this from Shopify Admin → Settings → Apps → Develop apps
+                    </p>
+                  </div>
+                </>
+              )}
+
+              {selectedPlatform === 'Stripe' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-400 mb-2">Public Key</label>
+                    <input
+                      type="text"
+                      name="public-field"
+                      placeholder="pk_test_xxxxxxxx"
+                      value={apiKey}
+                      onChange={(e) => setApiKey(e.target.value)}
+                      className="w-full px-4 py-3 bg-[#111] border border-white/10 rounded-lg outline-none focus:ring-2 focus:ring-electric/50 focus:border-electric text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-400 mb-2">Secret Key</label>
+                    <input
+                      type="text"
+                      name="secret-field"
+                      placeholder="sk_test_xxxxxxxx"
+                      value={secretKey}
+                      onChange={(e) => setSecretKey(e.target.value)}
+                      className="w-full px-4 py-3 bg-[#111] border border-white/10 rounded-lg outline-none focus:ring-2 focus:ring-electric/50 focus:border-electric text-white"
+                    />
+                    <p className="text-xs text-slate-500 mt-1">
+                      Get this from Stripe Dashboard → Developers → API keys
+                    </p>
+                  </div>
+                </>
+              )}
+
+              {(selectedPlatform === 'Amazon' || selectedPlatform === 'Bank') && (
+                <div className="text-center py-8">
+                  <p className="text-slate-400">Integration with {selectedPlatform} is coming soon!</p>
+                </div>
+              )}
+            </form>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowModal(false)}
+                className="flex-1 py-3 rounded-lg font-bold text-slate-300 bg-white/5 hover:bg-white/10 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleModalSave}
+                disabled={modalSaving || (selectedPlatform === 'Amazon' || selectedPlatform === 'Bank')}
+                className="flex-1 py-3 rounded-lg font-bold text-carbon bg-electric hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {modalSaving ? (
+                  <>
+                    <Loader2 className="animate-spin" size={18} />
+                    Connecting...
+                  </>
+                ) : (
+                  <>
+                    <Save size={18} />
+                    Connect
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

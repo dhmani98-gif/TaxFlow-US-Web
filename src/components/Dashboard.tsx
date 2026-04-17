@@ -18,47 +18,49 @@ import {
   Tooltip, 
   ResponsiveContainer
 } from 'recharts';
-import { db, auth } from '../firebase';
-import { collection, query, onSnapshot, where, orderBy } from 'firebase/firestore';
+import { auth, db } from '../lib/supabase';
 
-export default function Dashboard() {
+interface DashboardProps {
+  userId?: string;
+}
+
+export default function Dashboard({ userId }: DashboardProps) {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [nexusStatus, setNexusStatus] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const user = auth.currentUser;
-    if (!user) return;
+    const loadData = async () => {
+      if (!userId) {
+        setLoading(false);
+        return;
+      }
 
-    const orgId = user.uid; 
+      try {
+        // Get user's organization
+        const orgs = await db.getOrganizations(userId);
+        if (orgs.length === 0) {
+          setLoading(false);
+          return;
+        }
+        const orgId = orgs[0].id;
 
-    const txQuery = query(
-      collection(db, `organizations/${orgId}/transactions`)
-    );
-
-    const nexusQuery = collection(db, `organizations/${orgId}/nexus`);
-
-    const unsubTx = onSnapshot(txQuery, (snapshot) => {
-      const txs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setTransactions(txs);
-      setLoading(false);
-    }, (err) => {
-      console.error("Firestore Error (Transactions):", err);
-      setLoading(false);
-    });
-
-    const unsubNexus = onSnapshot(nexusQuery, (snapshot) => {
-      const nexus = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setNexusStatus(nexus);
-    }, (err) => {
-      console.error("Firestore Error (Nexus):", err);
-    });
-
-    return () => {
-      unsubTx();
-      unsubNexus();
+        // Load transactions via Supabase
+        const txs = await db.getTransactions(orgId);
+        setTransactions(txs);
+        
+        // Load nexus data via Supabase
+        const nexus = await db.getNexusStatus(orgId);
+        setNexusStatus(nexus);
+      } catch (err) {
+        console.error("Supabase Error:", err);
+      } finally {
+        setLoading(false);
+      }
     };
-  }, []);
+
+    loadData();
+  }, [userId]);
 
   const totalRevenue = transactions
     .filter(t => t.amount > 0)
@@ -78,7 +80,7 @@ export default function Dashboard() {
     const monthlyData: any[] = [];
 
     transactions.forEach(tx => {
-      const date = tx.transaction_date?.toDate ? tx.transaction_date.toDate() : new Date();
+      const date = tx.transaction_date ? new Date(tx.transaction_date) : new Date();
       const monthName = monthNames[date.getMonth()];
       const existingMonth = monthlyData.find(m => m.name === monthName);
 
@@ -110,7 +112,7 @@ export default function Dashboard() {
     <div className="space-y-8 animate-in fade-in duration-500">
       <header>
         <h2 className="text-2xl font-bold text-white tracking-tight">Financial Overview</h2>
-        <p className="text-slate-500">Real-time tax tracking and nexus monitoring from Firestore.</p>
+        <p className="text-slate-500">Real-time tax tracking and nexus monitoring from MongoDB.</p>
       </header>
 
       {/* Top Stats */}
@@ -224,7 +226,7 @@ export default function Dashboard() {
                 </div>
               );
             }) : (
-              <p className="text-sm text-slate-500 text-center py-8">No nexus data found in Firestore.</p>
+              <p className="text-sm text-slate-500 text-center py-8">No nexus data found in MongoDB.</p>
             )}
           </div>
           

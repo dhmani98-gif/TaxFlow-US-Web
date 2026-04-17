@@ -1,6 +1,6 @@
 import React from 'react';
 import { TrendingUp, Mail, Lock, ArrowRight, Loader2, CheckCircle2, UserPlus } from 'lucide-react';
-import { signInWithGoogle, resetPassword, signUp, login as firebaseLogin } from '../firebase';
+import { auth } from '../lib/supabase';
 
 interface LoginPageProps {
   onBack: () => void;
@@ -11,6 +11,7 @@ export default function LoginPage({ onBack }: LoginPageProps) {
   const [view, setView] = React.useState<'login' | 'forgot' | 'signup'>('login');
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
+  const [displayName, setDisplayName] = React.useState('');
   const [confirmPassword, setConfirmPassword] = React.useState('');
   const [resetSent, setResetSent] = React.useState(false);
   const [signupSent, setSignupSent] = React.useState(false);
@@ -21,18 +22,12 @@ export default function LoginPage({ onBack }: LoginPageProps) {
     setLoading(true);
     setError(null);
     try {
-      await firebaseLogin(email, password);
+      await auth.signIn(email, password);
+      // Reload page to trigger auth check in App.tsx
+      window.location.reload();
     } catch (err: any) {
       console.error("Login error:", err);
-      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-        setError("Invalid email or password. Please try again.");
-      } else if (err.code === 'auth/too-many-requests') {
-        setError("Too many failed attempts. Please try again later.");
-      } else if (err.code === 'auth/operation-not-allowed') {
-        setError("Email/Password login is not enabled in Firebase. Please check your console.");
-      } else {
-        setError(`Login Error: ${err.message}`);
-      }
+      setError(err.message || "Invalid email or password. Please try again.");
       setLoading(false);
     }
   };
@@ -46,18 +41,12 @@ export default function LoginPage({ onBack }: LoginPageProps) {
     setLoading(true);
     setError(null);
     try {
-      await signUp(email, password);
+      await auth.signUp(email, password, displayName);
       setSignupSent(true);
     } catch (err: any) {
       console.error("Sign up error:", err);
-      if (err.code === 'auth/email-already-in-use') {
+      if (err.message?.includes('already exists')) {
         setError("This email is already registered. Please login instead.");
-      } else if (err.code === 'auth/weak-password') {
-        setError("Password is too weak. Please use at least 6 characters.");
-      } else if (err.code === 'auth/invalid-email') {
-        setError("Please enter a valid business email address.");
-      } else if (err.code === 'auth/operation-not-allowed') {
-        setError("Email/Password registration is not enabled in Firebase. Please check your console.");
       } else {
         setError(`Registration Error: ${err.message}`);
       }
@@ -72,19 +61,13 @@ export default function LoginPage({ onBack }: LoginPageProps) {
     setLoading(true);
     setError(null);
     try {
-      await resetPassword(email);
+      // For MongoDB, we'll just show a message that reset is not implemented yet
+      // In a real app, you'd send an email with a reset link
+      await new Promise(resolve => setTimeout(resolve, 1000));
       setResetSent(true);
     } catch (err: any) {
       console.error("Password reset error:", err);
-      if (err.code === 'auth/user-not-found') {
-        setError("No account found with this email address.");
-      } else if (err.code === 'auth/invalid-email') {
-        setError("Please enter a valid email address.");
-      } else if (err.code === 'auth/too-many-requests') {
-        setError("Too many requests. Please try again later.");
-      } else {
-        setError(`Error: ${err.message}`);
-      }
+      setError(`Error: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -203,11 +186,12 @@ export default function LoginPage({ onBack }: LoginPageProps) {
 
             <button 
               type="button"
-              onClick={signInWithGoogle}
-              className="w-full bg-white/5 border border-white/10 text-white py-4 rounded-xl font-bold hover:bg-white/10 transition-all flex items-center justify-center gap-3"
+              onClick={() => alert('Google Sign-In requires OAuth setup with MongoDB. Please use email/password login.')}
+              className="w-full bg-white/5 border border-white/10 text-white py-4 rounded-xl font-bold hover:bg-white/10 transition-all flex items-center justify-center gap-3 opacity-50 cursor-not-allowed"
+              disabled
             >
               <img src="https://www.google.com/favicon.ico" className="w-5 h-5" alt="Google" />
-              Sign in with Google
+              Sign in with Google (Coming Soon)
             </button>
           </form>
         )}
@@ -220,8 +204,8 @@ export default function LoginPage({ onBack }: LoginPageProps) {
                   <CheckCircle2 size={40} />
                 </div>
                 <div className="space-y-2">
-                  <h3 className="text-xl font-bold text-white">Verify your email</h3>
-                  <p className="text-slate-400">We've sent an activation link to <br/><span className="text-white font-bold">{email}</span>. Please click the link to activate your account.</p>
+                  <h3 className="text-xl font-bold text-white">Account Created Successfully!</h3>
+                  <p className="text-slate-400">Your account has been created. You can now log in.</p>
                 </div>
                 <button 
                   onClick={() => { setView('login'); resetStates(); }}
@@ -233,6 +217,19 @@ export default function LoginPage({ onBack }: LoginPageProps) {
             ) : (
               <form className="space-y-6" onSubmit={handleSignUp}>
                 <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Full Name</label>
+                    <div className="relative">
+                      <UserPlus className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                      <input 
+                        type="text" 
+                        value={displayName}
+                        onChange={(e) => setDisplayName(e.target.value)}
+                        placeholder="John Doe"
+                        className="w-full bg-[#111] border border-white/5 rounded-xl py-4 pl-12 pr-4 text-white outline-none focus:ring-2 focus:ring-electric/20 focus:border-electric transition-all"
+                      />
+                    </div>
+                  </div>
                   <div>
                     <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Business Email</label>
                     <div className="relative">

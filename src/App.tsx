@@ -11,33 +11,62 @@ import Settings from './components/Settings';
 import LandingPage from './components/LandingPage';
 import LoginPage from './components/LoginPage';
 import { Bell, User, Search, LogIn, Loader2 } from 'lucide-react';
-import { auth, signInWithGoogle } from './firebase';
-import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
+import { auth, db } from './lib/supabase';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [user, setUser] = useState<FirebaseUser | null>(null);
+  const [user, setUser] = useState<{ uid: string; email: string; displayName?: string; photoURL?: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [showLogin, setShowLogin] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (user) => {
-      setUser(user);
+    // Check auth state with Supabase
+    const { data: { subscription } } = auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth event:', event, 'Session:', session);
+
+      if (session?.user) {
+        const user = session.user;
+        setUser({
+          uid: user.id,
+          email: user.email || '',
+          displayName: user.user_metadata?.display_name || user.email?.split('@')[0],
+        });
+
+        // Create organization in background (non-blocking)
+        db.getOrganizations(user.id)
+          .then(orgs => {
+            if (orgs.length === 0) {
+              return db.createOrganization({
+                profile_id: user.id,
+                name: 'My Business',
+                tax_year: new Date().getFullYear(),
+              });
+            }
+          })
+          .catch(err => {
+            console.error('Organization creation error:', err);
+          });
+      } else {
+        setUser(null);
+      }
       setLoading(false);
     });
-    return () => unsub();
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'dashboard': return <Dashboard />;
-      case 'integrations': return <Integrations />;
-      case 'transactions': return <Transactions />;
-      case 'reports': return <Reports />;
+      case 'dashboard': return <Dashboard userId={user?.uid} />;
+      case 'integrations': return <Integrations userId={user?.uid} />;
+      case 'transactions': return <Transactions userId={user?.uid} />;
+      case 'reports': return <Reports userId={user?.uid} />;
       case 'pricing': return <Pricing />;
-      case 'settings': return <Settings />;
-      default: return <Dashboard />;
+      case 'settings': return <Settings userId={user?.uid} />;
+      default: return <Dashboard userId={user?.uid} />;
     }
   };
 
@@ -100,7 +129,7 @@ export default function App() {
               
               <div className="h-8 w-px bg-white/5"></div>
               
-              <div className="flex items-center gap-3 cursor-pointer group" onClick={() => auth.signOut()}>
+              <div className="flex items-center gap-3 cursor-pointer group" onClick={async () => { await auth.signOut(); setUser(null); }}>
                 <div className="text-right hidden sm:block">
                   <p className="text-sm font-bold text-white group-hover:text-electric transition-colors">{user.displayName || 'User'}</p>
                   <p className="text-xs font-medium text-slate-500">Sign Out</p>

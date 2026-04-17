@@ -4,8 +4,11 @@ dist/
 coverage/
 .DS_Store
 *.log
-.env*
+.env.local
+.env.development
+.env.production
 !.env.example
+!.env
 
 # Service Account Keys
 *firebase-adminsdk*.json

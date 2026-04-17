@@ -1,6 +1,4 @@
-import React, { useState } from 'react';
-import { useSelector } from 'react-redux';
-import { RootState } from '../store';
+import React, { useState, useEffect } from 'react';
 import {
   Search,
   Filter,
@@ -12,9 +10,11 @@ import {
   Building2,
   MoreHorizontal,
   ArrowUpDown,
-  X
+  X,
+  Loader2
 } from 'lucide-react';
 import { formatCurrency, cn } from '../lib/utils';
+import { auth, db } from '../lib/supabase';
 
 const platformIcons: Record<string, any> = {
   Shopify: ShoppingBag,
@@ -23,14 +23,44 @@ const platformIcons: Record<string, any> = {
   Bank: Building2,
 };
 
-export default function Transactions() {
-  const { transactions } = useSelector((state: RootState) => state.app);
+interface TransactionsProps {
+  userId?: string;
+}
+
+export default function Transactions({ userId }: TransactionsProps) {
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
 
+  useEffect(() => {
+    const loadTransactions = async () => {
+      if (!userId) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const orgs = await db.getOrganizations(userId);
+        if (orgs.length === 0) {
+          setLoading(false);
+          return;
+        }
+        const txs = await db.getTransactions(orgs[0].id);
+        setTransactions(txs);
+      } catch (err) {
+        console.error("Supabase Error (Transactions):", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadTransactions();
+  }, [userId]);
+
   const filteredTransactions = transactions.filter(t =>
-    t.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    t.sourceId.toLowerCase().includes(searchTerm.toLowerCase())
+    t.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    t.sourceId?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const exportToCSV = () => {
@@ -43,11 +73,11 @@ export default function Transactions() {
     const csvContent = [
       headers.join(','),
       ...filteredTransactions.map(tx => [
-        new Date(tx.transactionDate).toLocaleDateString(),
+        tx.transaction_date ? new Date(tx.transaction_date).toLocaleDateString() : 'N/A',
         tx.platform,
         tx.description,
         tx.categoryId || 'Uncategorized',
-        tx.amount.toFixed(2)
+        tx.amount?.toFixed(2) || '0.00'
       ].join(','))
     ].join('\n');
 
@@ -106,6 +136,11 @@ export default function Transactions() {
         </div>
 
         <div className="overflow-x-auto">
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <Loader2 className="animate-spin text-electric" size={32} />
+            </div>
+          ) : (
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-white/[0.02]">
@@ -118,52 +153,61 @@ export default function Transactions() {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {filteredTransactions.map((tx) => {
-                const Icon = platformIcons[tx.platform] || Building2;
-                return (
-                  <tr key={tx.id} className="hover:bg-white/[0.02] transition-colors group">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm font-bold text-slate-400 font-mono">
-                        {new Date(tx.transactionDate).toLocaleDateString()}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        <div className="p-1.5 bg-white/5 rounded text-slate-400">
-                          <Icon size={14} />
+              {filteredTransactions.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                    No transactions found. Connect your store or add transactions manually.
+                  </td>
+                </tr>
+              ) : (
+                filteredTransactions.map((tx) => {
+                  const Icon = platformIcons[tx.platform] || Building2;
+                  return (
+                    <tr key={tx.id} className="hover:bg-white/[0.02] transition-colors group">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="text-sm font-bold text-slate-400 font-mono">
+                          {tx.transaction_date ? new Date(tx.transaction_date).toLocaleDateString() : 'N/A'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1.5 bg-white/5 rounded text-slate-400">
+                            <Icon size={14} />
+                          </div>
+                          <span className="text-sm font-bold text-slate-300">{tx.platform}</span>
                         </div>
-                        <span className="text-sm font-bold text-slate-300">{tx.platform}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col">
-                        <span className="text-sm font-bold text-white">{tx.description}</span>
-                        <span className="text-xs text-slate-500 font-mono">{tx.sourceId}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-white/5 text-slate-400">
-                        {tx.categoryId === 'cat_1' ? 'Sales Income' : 'Advertising'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={cn(
-                        "text-sm font-black font-mono",
-                        tx.amount > 0 ? "text-green-500" : "text-white"
-                      )}>
-                        {tx.amount > 0 ? '+' : ''}{formatCurrency(tx.amount)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <button className="p-1 text-slate-500 hover:text-white opacity-0 group-hover:opacity-100 transition-all">
-                        <MoreHorizontal size={18} />
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold text-white">{tx.description}</span>
+                          <span className="text-xs text-slate-500 font-mono">{tx.sourceId}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-white/5 text-slate-400">
+                          {tx.categoryId === 'cat_1' ? 'Sales Income' : 'Advertising'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={cn(
+                          "text-sm font-black font-mono",
+                          tx.amount > 0 ? "text-green-500" : "text-white"
+                        )}>
+                          {tx.amount > 0 ? '+' : ''}{formatCurrency(tx.amount)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <button className="p-1 text-slate-500 hover:text-white opacity-0 group-hover:opacity-100 transition-all">
+                          <MoreHorizontal size={18} />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
+        )}
         </div>
         
         <div className="p-4 border-t border-white/5 bg-white/[0.01] flex items-center justify-between">

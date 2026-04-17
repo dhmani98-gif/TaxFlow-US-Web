@@ -1,18 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  User, 
-  Settings as SettingsIcon, 
-  Key, 
-  Globe, 
-  CreditCard, 
-  ShoppingBag,
-  Save,
-  Loader2
-} from 'lucide-react';
-import { auth, db } from '../firebase';
-import { doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
+import { User, Save, Loader2, Globe, Settings as SettingsIcon } from 'lucide-react';
+import { auth, db } from '../lib/supabase';
 
-export default function Settings() {
+interface SettingsProps {
+  userId?: string;
+}
+
+export default function Settings({ userId }: SettingsProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('profile');
@@ -20,60 +14,54 @@ export default function Settings() {
   // Profile settings
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
-
-  // Currency & Tax settings
+  
+  // Business settings
+  const [businessName, setBusinessName] = useState('');
+  const [taxId, setTaxId] = useState('');
   const [currency, setCurrency] = useState('USD');
   const [taxRate, setTaxRate] = useState(15);
 
-  // API Keys
-  const [shopifyShopUrl, setShopifyShopUrl] = useState('');
-  const [shopifyAccessToken, setShopifyAccessToken] = useState('');
-  const [stripePublicKey, setStripePublicKey] = useState('');
-  const [stripeSecretKey, setStripeSecretKey] = useState('');
-
   useEffect(() => {
-    const user = auth.currentUser;
-    if (!user) return;
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
 
     const loadSettings = async () => {
       try {
-        const settingsDoc = await getDoc(doc(db, 'users', user.uid, 'settings', 'config'));
-        if (settingsDoc.exists()) {
-          const data = settingsDoc.data();
-          setCurrency(data.currency || 'USD');
-          setTaxRate(data.taxRate || 15);
-          setShopifyShopUrl(data.shopifyShopUrl || '');
-          setShopifyAccessToken(data.shopifyAccessToken || '');
-          setStripePublicKey(data.stripePublicKey || '');
-          setStripeSecretKey(data.stripeSecretKey || '');
+        const profile = await db.getProfile(userId);
+        if (profile) {
+          setDisplayName(profile.display_name || '');
+          setEmail(profile.email || '');
+          setBusinessName(profile.business_name || '');
+          setTaxId(profile.tax_id || '');
+          setCurrency(profile.business_address?.currency || 'USD');
+          setTaxRate(profile.business_address?.taxRate || 15);
         }
       } catch (error) {
         console.error('Error loading settings:', error);
+      } finally {
+        setLoading(false);
       }
-
-      setDisplayName(user.displayName || '');
-      setEmail(user.email || '');
-      setLoading(false);
     };
 
     loadSettings();
-  }, []);
+  }, [userId]);
 
   const handleSave = async () => {
-    const user = auth.currentUser;
-    if (!user) return;
+    if (!userId) return;
 
     setSaving(true);
     try {
-      await setDoc(doc(db, 'users', user.uid, 'settings', 'config'), {
-        currency,
-        taxRate,
-        shopifyShopUrl,
-        shopifyAccessToken,
-        stripePublicKey,
-        stripeSecretKey,
-        updatedAt: new Date().toISOString()
-      }, { merge: true });
+      await db.updateProfile(userId, {
+        display_name: displayName,
+        business_name: businessName,
+        tax_id: taxId,
+        business_address: {
+          currency,
+          taxRate,
+        },
+      });
 
       alert('Settings saved successfully!');
     } catch (error) {
@@ -96,7 +84,7 @@ export default function Settings() {
     <div className="space-y-8 animate-in fade-in duration-500">
       <header>
         <h2 className="text-2xl font-bold text-white tracking-tight">Settings</h2>
-        <p className="text-slate-500">Manage your account preferences and integrations.</p>
+        <p className="text-slate-500">Manage your account and business preferences.</p>
       </header>
 
       <div className="flex gap-8">
@@ -114,26 +102,15 @@ export default function Settings() {
             Profile
           </button>
           <button
-            onClick={() => setActiveTab('tax')}
+            onClick={() => setActiveTab('business')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold transition-all ${
-              activeTab === 'tax' 
+              activeTab === 'business' 
                 ? 'bg-electric text-carbon' 
                 : 'bg-white/5 text-slate-400 hover:bg-white/10'
             }`}
           >
-            <SettingsIcon size={18} />
-            Currency & Tax
-          </button>
-          <button
-            onClick={() => setActiveTab('integrations')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold transition-all ${
-              activeTab === 'integrations' 
-                ? 'bg-electric text-carbon' 
-                : 'bg-white/5 text-slate-400 hover:bg-white/10'
-            }`}
-          >
-            <Key size={18} />
-            API Keys
+            <Globe size={18} />
+            Business Settings
           </button>
         </div>
 
@@ -176,19 +153,42 @@ export default function Settings() {
             </div>
           )}
 
-          {activeTab === 'tax' && (
+          {activeTab === 'business' && (
             <div className="card bg-carbon border-white/5 p-6 space-y-6">
               <div className="flex items-center gap-3 mb-6">
                 <div className="p-3 bg-electric/10 rounded-xl">
-                  <Globe className="text-electric" size={24} />
+                  <SettingsIcon className="text-electric" size={24} />
                 </div>
                 <div>
-                  <h3 className="font-bold text-lg text-white">Currency & Tax Settings</h3>
-                  <p className="text-sm text-slate-500">Configure your business currency and tax rates</p>
+                  <h3 className="font-bold text-lg text-white">Business Settings</h3>
+                  <p className="text-sm text-slate-500">Configure your business details and tax preferences</p>
                 </div>
               </div>
 
               <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-bold text-slate-400 mb-2">Business Name</label>
+                  <input
+                    type="text"
+                    value={businessName}
+                    onChange={(e) => setBusinessName(e.target.value)}
+                    placeholder="My Business LLC"
+                    className="w-full px-4 py-3 bg-carbon border border-electric/50 rounded-lg outline-none focus:ring-2 focus:ring-electric/50 focus:border-electric text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-slate-400 mb-2">Tax ID (EIN/SSN)</label>
+                  <input
+                    type="text"
+                    value={taxId}
+                    onChange={(e) => setTaxId(e.target.value)}
+                    placeholder="XX-XXXXXXX"
+                    className="w-full px-4 py-3 bg-carbon border border-electric/50 rounded-lg outline-none focus:ring-2 focus:ring-electric/50 focus:border-electric text-white"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">Your business tax identification number</p>
+                </div>
+
                 <div>
                   <label className="block text-sm font-bold text-slate-400 mb-2">Currency</label>
                   <select
@@ -219,102 +219,17 @@ export default function Settings() {
               </div>
             </div>
           )}
-
-          {activeTab === 'integrations' && (
-            <div className="card bg-carbon border-white/5 p-6 space-y-6">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-3 bg-electric/10 rounded-xl">
-                  <Key className="text-electric" size={24} />
-                </div>
-                <div>
-                  <h3 className="font-bold text-lg text-white">API Keys & Integrations</h3>
-                  <p className="text-sm text-slate-500">Manage your third-party service credentials</p>
-                </div>
-              </div>
-
-              <div className="space-y-6">
-                {/* Shopify */}
-                <div className="p-4 bg-white/5 border border-white/10 rounded-xl space-y-4">
-                  <div className="flex items-center gap-3">
-                    <ShoppingBag className="text-green-500" size={20} />
-                    <h4 className="font-bold text-white">Shopify Integration</h4>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-bold text-slate-400 mb-2">Shop URL</label>
-                    <input
-                      type="text"
-                      placeholder="https://your-shop.myshopify.com"
-                      value={shopifyShopUrl}
-                      onChange={(e) => setShopifyShopUrl(e.target.value)}
-                      className="w-full px-4 py-3 bg-carbon border border-electric/50 rounded-lg outline-none focus:ring-2 focus:ring-electric/50 focus:border-electric text-white"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-bold text-slate-400 mb-2">Access Token</label>
-                    <input
-                      type="password"
-                      placeholder="shpat_xxxxxxxx"
-                      value={shopifyAccessToken}
-                      onChange={(e) => setShopifyAccessToken(e.target.value)}
-                      className="w-full px-4 py-3 bg-carbon border border-electric/50 rounded-lg outline-none focus:ring-2 focus:ring-electric/50 focus:border-electric text-white"
-                    />
-                    <p className="text-xs text-slate-500 mt-1">
-                      Get this from Shopify Admin → Settings → Apps and sales channels → Develop apps → Create custom app
-                    </p>
-                  </div>
-                </div>
-
-                {/* Stripe */}
-                <div className="p-4 bg-white/5 border border-white/10 rounded-xl space-y-4">
-                  <div className="flex items-center gap-3">
-                    <CreditCard className="text-indigo-500" size={20} />
-                    <h4 className="font-bold text-white">Stripe Integration</h4>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-bold text-slate-400 mb-2">Public Key</label>
-                    <input
-                      type="text"
-                      placeholder="pk_test_xxxxxxxx"
-                      value={stripePublicKey}
-                      onChange={(e) => setStripePublicKey(e.target.value)}
-                      className="w-full px-4 py-3 bg-carbon border border-electric/50 rounded-lg outline-none focus:ring-2 focus:ring-electric/50 focus:border-electric text-white"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-bold text-slate-400 mb-2">Secret Key</label>
-                    <input
-                      type="password"
-                      placeholder="sk_test_xxxxxxxx"
-                      value={stripeSecretKey}
-                      onChange={(e) => setStripeSecretKey(e.target.value)}
-                      className="w-full px-4 py-3 bg-carbon border border-electric/50 rounded-lg outline-none focus:ring-2 focus:ring-electric/50 focus:border-electric text-white"
-                    />
-                    <p className="text-xs text-slate-500 mt-1">
-                      Get this from Stripe Dashboard → Developers → API keys
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Save Button */}
-          <div className="mt-6">
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="flex items-center gap-2 px-6 py-3 bg-electric text-carbon rounded-lg font-black hover:brightness-110 transition-all disabled:opacity-50"
-            >
-              {saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
-              {saving ? 'Saving...' : 'Save Changes'}
-            </button>
-          </div>
         </div>
       </div>
+
+      <button
+        onClick={handleSave}
+        disabled={saving}
+        className="w-full bg-electric text-carbon py-3 rounded-lg font-bold hover:brightness-110 transition-all flex items-center justify-center gap-2"
+      >
+        {saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
+        {saving ? 'Saving...' : 'Save Changes'}
+      </button>
     </div>
   );
 }
