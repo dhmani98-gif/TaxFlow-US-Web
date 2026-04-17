@@ -1,6 +1,6 @@
 import React from 'react';
 import { TrendingUp, Mail, Lock, ArrowRight, Loader2, CheckCircle2, UserPlus } from 'lucide-react';
-import { auth } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 
 interface LoginPageProps {
   onBack: () => void;
@@ -22,7 +22,11 @@ export default function LoginPage({ onBack }: LoginPageProps) {
     setLoading(true);
     setError(null);
     try {
-      await auth.signIn(email, password);
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) throw error;
       // Reload page to trigger auth check in App.tsx
       window.location.reload();
     } catch (err: any) {
@@ -41,7 +45,16 @@ export default function LoginPage({ onBack }: LoginPageProps) {
     setLoading(true);
     setError(null);
     try {
-      await auth.signUp(email, password, displayName);
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            display_name: displayName,
+          },
+        },
+      });
+      if (error) throw error;
       setSignupSent(true);
     } catch (err: any) {
       console.error("Sign up error:", err);
@@ -51,6 +64,24 @@ export default function LoginPage({ onBack }: LoginPageProps) {
         setError(`Registration Error: ${err.message}`);
       }
     } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin,
+        },
+      });
+      if (error) throw error;
+    } catch (err: any) {
+      console.error("Google sign-in error:", err);
+      setError(`Google Sign-In Error: ${err.message}`);
       setLoading(false);
     }
   };
@@ -186,12 +217,12 @@ export default function LoginPage({ onBack }: LoginPageProps) {
 
             <button 
               type="button"
-              onClick={() => alert('Google Sign-In requires OAuth setup with MongoDB. Please use email/password login.')}
-              className="w-full bg-white/5 border border-white/10 text-white py-4 rounded-xl font-bold hover:bg-white/10 transition-all flex items-center justify-center gap-3 opacity-50 cursor-not-allowed"
-              disabled
+              onClick={handleGoogleSignIn}
+              disabled={loading}
+              className="w-full bg-white/5 border border-white/10 text-white py-4 rounded-xl font-bold hover:bg-white/10 transition-all flex items-center justify-center gap-3"
             >
-              <img src="https://www.google.com/favicon.ico" className="w-5 h-5" alt="Google" />
-              Sign in with Google (Coming Soon)
+              {loading ? <Loader2 className="animate-spin" size={20} /> : <img src="https://www.google.com/favicon.ico" className="w-5 h-5" alt="Google" />}
+              {loading ? 'Signing in...' : 'Sign in with Google'}
             </button>
           </form>
         )}

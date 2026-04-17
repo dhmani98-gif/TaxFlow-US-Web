@@ -11,7 +11,7 @@ import {
   CreditCard
 } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { auth } from '../firebase';
+import { supabase } from '../lib/supabase';
 
 interface SidebarProps {
   activeTab: string;
@@ -67,7 +67,7 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
           <p className="text-sm font-bold text-electric">Growth Pro</p>
         </div>
         <button
-          onClick={() => auth.signOut()}
+          onClick={() => supabase.auth.signOut()}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-500/60 hover:text-red-500 hover:bg-red-500/5 transition-all"
         >
           <LogOut size={18} />
