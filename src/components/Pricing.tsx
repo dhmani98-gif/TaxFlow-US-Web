@@ -46,7 +46,7 @@ export default function Pricing() {
         {
           id: '1',
           name: 'Starter',
-          price: 29,
+          price: 19,
           billing_period: 'mo',
           features: ['Up to 100 transactions/month', 'Basic tax calculation', '1 store connection', 'Email support', 'Standard reports'],
           is_featured: false,
@@ -54,7 +54,7 @@ export default function Pricing() {
         {
           id: '2',
           name: 'Growth',
-          price: 79,
+          price: 49,
           billing_period: 'mo',
           features: ['Unlimited transactions', 'QuickBooks & Xero sync', 'Advanced Nexus monitoring', 'IRS-ready Schedule C', 'Priority support'],
           is_featured: true,
@@ -62,7 +62,7 @@ export default function Pricing() {
         {
           id: '3',
           name: 'Enterprise',
-          price: 199,
+          price: 99,
           billing_period: 'mo',
           features: ['Unlimited transactions', 'Multi-currency support', 'Dedicated account manager', 'Custom integrations', '24/7 phone support'],
           is_featured: false,
@@ -151,7 +151,7 @@ export default function Pricing() {
     <div className="max-w-4xl mx-auto py-12 px-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="text-center mb-16">
         <h2 className="text-4xl font-black text-white mb-4 tracking-tight">Save Thousands on Accounting Costs</h2>
-        <p className="text-slate-500 text-lg">Replace manual bookkeeping with automated tax compliance. Starting at just $29/month.</p>
+        <p className="text-slate-500 text-lg">Replace manual bookkeeping with automated tax compliance. Starting at just $19/month.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
