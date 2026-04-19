@@ -48,7 +48,7 @@ export default function Pricing() {
           name: 'Starter',
           price: 29,
           billing_period: 'mo',
-          features: ['Up to 500 transactions/mo', 'Basic Nexus monitoring', '1 Shopify store connection', 'Email support'],
+          features: ['Up to 100 transactions/month', 'Basic tax calculation', '1 store connection', 'Email support', 'Standard reports'],
           is_featured: false,
         },
         {
@@ -56,8 +56,16 @@ export default function Pricing() {
           name: 'Growth',
           price: 79,
           billing_period: 'mo',
-          features: ['Unlimited transactions', 'Advanced Nexus Sentinel', 'Amazon, Shopify & Stripe', 'IRS-ready Schedule C', 'Priority CPA support'],
+          features: ['Unlimited transactions', 'QuickBooks & Xero sync', 'Advanced Nexus monitoring', 'IRS-ready Schedule C', 'Priority support'],
           is_featured: true,
+        },
+        {
+          id: '3',
+          name: 'Enterprise',
+          price: 199,
+          billing_period: 'mo',
+          features: ['Unlimited transactions', 'Multi-currency support', 'Dedicated account manager', 'Custom integrations', '24/7 phone support'],
+          is_featured: false,
         },
       ]);
     }
@@ -142,11 +150,11 @@ export default function Pricing() {
   return (
     <div className="max-w-4xl mx-auto py-12 px-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="text-center mb-16">
-        <h2 className="text-4xl font-black text-white mb-4 tracking-tight">Simple, Transparent Pricing</h2>
-        <p className="text-slate-500 text-lg">Choose the plan that fits your business scale. All plans include automated tax tracking.</p>
+        <h2 className="text-4xl font-black text-white mb-4 tracking-tight">Save Thousands on Accounting Costs</h2>
+        <p className="text-slate-500 text-lg">Replace manual bookkeeping with automated tax compliance. Starting at just $29/month.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {plans.map((plan) => (
           <div
             key={plan.id}

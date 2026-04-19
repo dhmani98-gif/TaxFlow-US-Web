@@ -20,6 +20,15 @@ export default function App() {
   const [showLogin, setShowLogin] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
 
+  // Check for redirect query parameter
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const redirect = urlParams.get('redirect');
+    if (redirect === 'dashboard' && !showLogin) {
+      setShowLogin(true);
+    }
+  }, []);
+
   useEffect(() => {
     // Check auth state with Supabase
     const { data: { subscription } } = auth.onAuthStateChange(async (event, session) => {
