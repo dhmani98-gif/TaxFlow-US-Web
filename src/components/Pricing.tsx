@@ -121,7 +121,7 @@ export default function Pricing() {
       }
 
       // Create Stripe checkout session
-      const response = await fetch('http://localhost:3002/api/create-checkout-session', {
+      const response = await fetch('https://taxflow-stripe-server.up.railway.app/api/create-checkout-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user.id, planId }),
