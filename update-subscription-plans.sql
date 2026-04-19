@@ -4,7 +4,7 @@
 -- Insert or update Starter plan
 INSERT INTO subscription_plans (id, name, price, billing_period, features, is_featured)
 VALUES ('550e8400-e29b-41d4-a716-446655440001', 'Starter', 19, 'mo',
-  ARRAY['Up to 100 transactions/month', 'Basic tax calculation', '1 store connection', 'Email support', 'Standard reports'],
+  '["Up to 100 transactions/month", "Basic tax calculation", "1 store connection", "Email support", "Standard reports"]'::jsonb,
   false)
 ON CONFLICT (id) DO UPDATE SET
   name = EXCLUDED.name,
@@ -16,7 +16,7 @@ ON CONFLICT (id) DO UPDATE SET
 -- Insert or update Growth plan
 INSERT INTO subscription_plans (id, name, price, billing_period, features, is_featured)
 VALUES ('550e8400-e29b-41d4-a716-446655440002', 'Growth', 49, 'mo',
-  ARRAY['Unlimited transactions', 'QuickBooks & Xero sync', 'Advanced Nexus monitoring', 'IRS-ready Schedule C', 'Priority support'],
+  '["Unlimited transactions", "QuickBooks & Xero sync", "Advanced Nexus monitoring", "IRS-ready Schedule C", "Priority support"]'::jsonb,
   true)
 ON CONFLICT (id) DO UPDATE SET
   name = EXCLUDED.name,
@@ -28,7 +28,7 @@ ON CONFLICT (id) DO UPDATE SET
 -- Insert or update Enterprise plan
 INSERT INTO subscription_plans (id, name, price, billing_period, features, is_featured)
 VALUES ('550e8400-e29b-41d4-a716-446655440003', 'Enterprise', 99, 'mo',
-  ARRAY['Unlimited transactions', 'Multi-currency support', 'Dedicated account manager', 'Custom integrations', '24/7 phone support'],
+  '["Unlimited transactions", "Multi-currency support", "Dedicated account manager", "Custom integrations", "24/7 phone support"]'::jsonb,
   false)
 ON CONFLICT (id) DO UPDATE SET
   name = EXCLUDED.name,
