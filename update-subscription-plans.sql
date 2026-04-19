@@ -3,7 +3,7 @@
 
 -- Insert or update Starter plan
 INSERT INTO subscription_plans (id, name, price, billing_period, features, is_featured)
-VALUES ('1', 'Starter', 19, 'mo', 
+VALUES ('550e8400-e29b-41d4-a716-446655440001', 'Starter', 19, 'mo',
   ARRAY['Up to 100 transactions/month', 'Basic tax calculation', '1 store connection', 'Email support', 'Standard reports'],
   false)
 ON CONFLICT (id) DO UPDATE SET
@@ -15,7 +15,7 @@ ON CONFLICT (id) DO UPDATE SET
 
 -- Insert or update Growth plan
 INSERT INTO subscription_plans (id, name, price, billing_period, features, is_featured)
-VALUES ('2', 'Growth', 49, 'mo',
+VALUES ('550e8400-e29b-41d4-a716-446655440002', 'Growth', 49, 'mo',
   ARRAY['Unlimited transactions', 'QuickBooks & Xero sync', 'Advanced Nexus monitoring', 'IRS-ready Schedule C', 'Priority support'],
   true)
 ON CONFLICT (id) DO UPDATE SET
@@ -27,7 +27,7 @@ ON CONFLICT (id) DO UPDATE SET
 
 -- Insert or update Enterprise plan
 INSERT INTO subscription_plans (id, name, price, billing_period, features, is_featured)
-VALUES ('3', 'Enterprise', 99, 'mo',
+VALUES ('550e8400-e29b-41d4-a716-446655440003', 'Enterprise', 99, 'mo',
   ARRAY['Unlimited transactions', 'Multi-currency support', 'Dedicated account manager', 'Custom integrations', '24/7 phone support'],
   false)
 ON CONFLICT (id) DO UPDATE SET

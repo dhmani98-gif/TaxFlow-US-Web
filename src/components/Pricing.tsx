@@ -44,7 +44,7 @@ export default function Pricing() {
       // Fallback to static plans if database fails
       setPlans([
         {
-          id: '1',
+          id: '550e8400-e29b-41d4-a716-446655440001',
           name: 'Starter',
           price: 19,
           billing_period: 'mo',
@@ -52,7 +52,7 @@ export default function Pricing() {
           is_featured: false,
         },
         {
-          id: '2',
+          id: '550e8400-e29b-41d4-a716-446655440002',
           name: 'Growth',
           price: 49,
           billing_period: 'mo',
@@ -60,7 +60,7 @@ export default function Pricing() {
           is_featured: true,
         },
         {
-          id: '3',
+          id: '550e8400-e29b-41d4-a716-446655440003',
           name: 'Enterprise',
           price: 99,
           billing_period: 'mo',
