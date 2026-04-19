@@ -1,38 +1,32 @@
--- Ensure all subscription plans exist in the database
--- This will insert or update plans to ensure all 3 tiers are available
+-- Update existing subscription plans in the database
+-- This will update plans to ensure all 3 tiers have correct prices and features
 
--- Insert or update Starter plan
-INSERT INTO subscription_plans (id, name, price, billing_period, features, is_featured)
-VALUES ('550e8400-e29b-41d4-a716-446655440001', 'Starter', 19, 'mo',
-  '["Up to 100 transactions/month", "Basic tax calculation", "1 store connection", "Email support", "Standard reports"]'::jsonb,
-  false)
-ON CONFLICT (id) DO UPDATE SET
-  name = EXCLUDED.name,
-  price = EXCLUDED.price,
-  billing_period = EXCLUDED.billing_period,
-  features = EXCLUDED.features,
-  is_featured = EXCLUDED.is_featured;
+-- Update Starter plan
+UPDATE subscription_plans 
+SET 
+  id = '550e8400-e29b-41d4-a716-446655440001',
+  price = 19,
+  billing_period = 'mo',
+  features = '["Up to 100 transactions/month", "Basic tax calculation", "1 store connection", "Email support", "Standard reports"]'::jsonb,
+  is_featured = false
+WHERE name = 'Starter';
 
--- Insert or update Growth plan
-INSERT INTO subscription_plans (id, name, price, billing_period, features, is_featured)
-VALUES ('550e8400-e29b-41d4-a716-446655440002', 'Growth', 49, 'mo',
-  '["Unlimited transactions", "QuickBooks & Xero sync", "Advanced Nexus monitoring", "IRS-ready Schedule C", "Priority support"]'::jsonb,
-  true)
-ON CONFLICT (id) DO UPDATE SET
-  name = EXCLUDED.name,
-  price = EXCLUDED.price,
-  billing_period = EXCLUDED.billing_period,
-  features = EXCLUDED.features,
-  is_featured = EXCLUDED.is_featured;
+-- Update Growth plan
+UPDATE subscription_plans 
+SET 
+  id = '550e8400-e29b-41d4-a716-446655440002',
+  price = 49,
+  billing_period = 'mo',
+  features = '["Unlimited transactions", "QuickBooks & Xero sync", "Advanced Nexus monitoring", "IRS-ready Schedule C", "Priority support"]'::jsonb,
+  is_featured = true
+WHERE name = 'Growth';
 
--- Insert or update Enterprise plan
-INSERT INTO subscription_plans (id, name, price, billing_period, features, is_featured)
-VALUES ('550e8400-e29b-41d4-a716-446655440003', 'Enterprise', 99, 'mo',
-  '["Unlimited transactions", "Multi-currency support", "Dedicated account manager", "Custom integrations", "24/7 phone support"]'::jsonb,
-  false)
-ON CONFLICT (id) DO UPDATE SET
-  name = EXCLUDED.name,
-  price = EXCLUDED.price,
-  billing_period = EXCLUDED.billing_period,
-  features = EXCLUDED.features,
-  is_featured = EXCLUDED.is_featured;
+-- Update Enterprise plan
+UPDATE subscription_plans 
+SET 
+  id = '550e8400-e29b-41d4-a716-446655440003',
+  price = 99,
+  billing_period = 'mo',
+  features = '["Unlimited transactions", "Multi-currency support", "Dedicated account manager", "Custom integrations", "24/7 phone support"]'::jsonb,
+  is_featured = false
+WHERE name = 'Enterprise';
