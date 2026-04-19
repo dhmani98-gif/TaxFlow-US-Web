@@ -10,6 +10,11 @@ import Pricing from './components/Pricing';
 import Settings from './components/Settings';
 import LandingPage from './components/LandingPage';
 import LoginPage from './components/LoginPage';
+import Features from './components/Features';
+import HowItWorks from './components/HowItWorks';
+import Privacy from './components/Privacy';
+import Terms from './components/Terms';
+import Cookies from './components/Cookies';
 import { Bell, User, Search, LogIn, Loader2 } from 'lucide-react';
 import { auth, db } from './lib/supabase';
 
@@ -75,6 +80,11 @@ export default function App() {
       case 'reports': return <Reports userId={user?.uid} />;
       case 'pricing': return <Pricing />;
       case 'settings': return <Settings userId={user?.uid} />;
+      case 'features': return <Features />;
+      case 'how-it-works': return <HowItWorks />;
+      case 'privacy': return <Privacy />;
+      case 'terms': return <Terms />;
+      case 'cookies': return <Cookies />;
       default: return <Dashboard userId={user?.uid} />;
     }
   };
@@ -91,7 +101,7 @@ export default function App() {
     if (showLogin) {
       return <LoginPage onBack={() => setShowLogin(false)} />;
     }
-    return <LandingPage onShowLogin={() => setShowLogin(true)} />;
+    return <LandingPage onShowLogin={() => setShowLogin(true)} onNavigate={(page) => { setActiveTab(page); setShowLogin(false); setUser({ uid: 'guest', email: 'guest@taxflow.com' }); }} />;
   }
 
   return (

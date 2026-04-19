@@ -17,9 +17,10 @@ import { signInWithGoogle } from '../firebase';
 
 interface LandingPageProps {
   onShowLogin: () => void;
+  onNavigate: (page: string) => void;
 }
 
-export default function LandingPage({ onShowLogin }: LandingPageProps) {
+export default function LandingPage({ onShowLogin, onNavigate }: LandingPageProps) {
   return (
     <div className="min-h-screen bg-carbon text-white font-sans selection:bg-electric/30">
       {/* Navigation */}
@@ -34,9 +35,9 @@ export default function LandingPage({ onShowLogin }: LandingPageProps) {
           </div>
         </div>
         <div className="hidden md:flex items-center gap-8 text-sm font-bold text-slate-400">
-          <a href="#features" className="hover:text-white transition-colors">Features</a>
-          <a href="#how-it-works" className="hover:text-white transition-colors">How it Works</a>
-          <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
+          <button onClick={() => onNavigate('features')} className="hover:text-white transition-colors">Features</button>
+          <button onClick={() => onNavigate('how-it-works')} className="hover:text-white transition-colors">How it Works</button>
+          <button onClick={() => onNavigate('pricing')} className="hover:text-white transition-colors">Pricing</button>
         </div>
         <div className="flex items-center gap-4">
           <button 
@@ -176,17 +177,17 @@ export default function LandingPage({ onShowLogin }: LandingPageProps) {
             <div className="space-y-4">
               <h4 className="font-black text-white uppercase tracking-widest text-xs">Quick Links</h4>
               <ul className="space-y-2 text-sm font-bold text-slate-500">
-                <li><a href="#features" className="hover:text-electric transition-colors">Features</a></li>
-                <li><a href="#how-it-works" className="hover:text-electric transition-colors">How it Works</a></li>
-                <li><a href="#pricing" className="hover:text-electric transition-colors">Pricing</a></li>
+                <li><button onClick={() => onNavigate('features')} className="hover:text-electric transition-colors">Features</button></li>
+                <li><button onClick={() => onNavigate('how-it-works')} className="hover:text-electric transition-colors">How it Works</button></li>
+                <li><button onClick={() => onNavigate('pricing')} className="hover:text-electric transition-colors">Pricing</button></li>
               </ul>
             </div>
             <div className="space-y-4">
               <h4 className="font-black text-white uppercase tracking-widest text-xs">Legal</h4>
               <ul className="space-y-2 text-sm font-bold text-slate-500">
-                <li><a href="#" className="hover:text-electric transition-colors">Terms & Conditions</a></li>
-                <li><a href="#" className="hover:text-electric transition-colors">Privacy Policy</a></li>
-                <li><a href="#" className="hover:text-electric transition-colors">Cookie Policy</a></li>
+                <li><button onClick={() => onNavigate('terms')} className="hover:text-electric transition-colors">Terms & Conditions</button></li>
+                <li><button onClick={() => onNavigate('privacy')} className="hover:text-electric transition-colors">Privacy Policy</button></li>
+                <li><button onClick={() => onNavigate('cookies')} className="hover:text-electric transition-colors">Cookie Policy</button></li>
               </ul>
             </div>
           </div>
