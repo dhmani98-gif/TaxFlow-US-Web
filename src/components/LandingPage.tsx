@@ -123,36 +123,85 @@ export default function LandingPage({ onShowLogin, onNavigate }: LandingPageProp
 
       {/* Pricing Section */}
       <section id="pricing" className="py-32 px-8">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-black text-white mb-4">One plan, unlimited features.</h2>
-            <p className="text-slate-400">Everything you need to scale your US business.</p>
+            <h2 className="text-4xl font-black text-white mb-4">Simple, Transparent Pricing</h2>
+            <p className="text-slate-400">Choose the plan that fits your business scale. Starting at just $19/month.</p>
           </div>
           
-          <div className="bg-[#111] rounded-[3rem] p-12 text-white relative overflow-hidden shadow-2xl shadow-electric/10 border border-electric/20">
-            <div className="absolute top-8 right-8 bg-electric text-carbon text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest">
-              Growth Plan
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-              <div>
-                <div className="flex items-baseline gap-2 mb-8">
-                  <span className="text-7xl font-black text-electric">$79</span>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Starter Plan */}
+            <div className="bg-[#111] rounded-[3rem] p-8 text-white border border-white/5 hover:border-electric/20 transition-all">
+              <div className="text-center mb-8">
+                <h3 className="text-2xl font-black mb-4">Starter</h3>
+                <div className="flex items-baseline gap-2 justify-center">
+                  <span className="text-6xl font-black text-white">$19</span>
                   <span className="text-slate-400 font-bold">/ month</span>
                 </div>
-                <button 
-                  onClick={onShowLogin}
-                  className="w-full bg-electric text-carbon py-5 rounded-2xl font-black text-xl hover:brightness-110 transition-all shadow-2xl shadow-electric/20"
-                >
-                  Subscribe Now
-                </button>
               </div>
+              <button 
+                onClick={() => onNavigate('pricing')}
+                className="w-full bg-white/10 text-white py-4 rounded-2xl font-bold text-lg hover:bg-white/20 transition-all mb-8"
+              >
+                Get Started
+              </button>
               <div className="space-y-4">
-                <CheckItem text="Direct integration with Amazon SP-API" />
-                <CheckItem text="Full integration with Shopify Partners" />
-                <CheckItem text="Ready Schedule C reports" />
-                <CheckItem text="Unlimited store connections" />
-                <CheckItem text="Specialized CPA support" />
+                <CheckItem text="Up to 100 transactions/month" />
+                <CheckItem text="Basic tax calculation" />
+                <CheckItem text="1 store connection" />
+                <CheckItem text="Email support" />
+                <CheckItem text="Standard reports" />
+              </div>
+            </div>
+
+            {/* Growth Plan */}
+            <div className="bg-[#111] rounded-[3rem] p-8 text-white border-2 border-electric relative overflow-hidden shadow-2xl shadow-electric/20 scale-105">
+              <div className="absolute top-4 right-4 bg-electric text-carbon text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest">
+                Most Popular
+              </div>
+              <div className="text-center mb-8">
+                <h3 className="text-2xl font-black mb-4 text-electric">Growth</h3>
+                <div className="flex items-baseline gap-2 justify-center">
+                  <span className="text-6xl font-black text-electric">$49</span>
+                  <span className="text-slate-400 font-bold">/ month</span>
+                </div>
+              </div>
+              <button 
+                onClick={() => onNavigate('pricing')}
+                className="w-full bg-electric text-carbon py-4 rounded-2xl font-bold text-lg hover:brightness-110 transition-all mb-8 shadow-xl shadow-electric/20"
+              >
+                Subscribe to Growth
+              </button>
+              <div className="space-y-4">
+                <CheckItem text="Unlimited transactions" />
+                <CheckItem text="QuickBooks & Xero sync" />
+                <CheckItem text="Advanced Nexus monitoring" />
+                <CheckItem text="IRS-ready Schedule C" />
+                <CheckItem text="Priority support" />
+              </div>
+            </div>
+
+            {/* Enterprise Plan */}
+            <div className="bg-[#111] rounded-[3rem] p-8 text-white border border-white/5 hover:border-electric/20 transition-all">
+              <div className="text-center mb-8">
+                <h3 className="text-2xl font-black mb-4">Enterprise</h3>
+                <div className="flex items-baseline gap-2 justify-center">
+                  <span className="text-6xl font-black text-white">$99</span>
+                  <span className="text-slate-400 font-bold">/ month</span>
+                </div>
+              </div>
+              <button 
+                onClick={() => onNavigate('pricing')}
+                className="w-full bg-white/10 text-white py-4 rounded-2xl font-bold text-lg hover:bg-white/20 transition-all mb-8"
+              >
+                Contact Sales
+              </button>
+              <div className="space-y-4">
+                <CheckItem text="Unlimited transactions" />
+                <CheckItem text="Multi-currency support" />
+                <CheckItem text="Dedicated account manager" />
+                <CheckItem text="Custom integrations" />
+                <CheckItem text="24/7 phone support" />
               </div>
             </div>
           </div>
