@@ -15,7 +15,7 @@ import HowItWorks from './components/HowItWorks';
 import Privacy from './components/Privacy';
 import Terms from './components/Terms';
 import Cookies from './components/Cookies';
-import { Bell, User, Search, LogIn, Loader2 } from 'lucide-react';
+import { Bell, User, Search, LogIn, Loader2, TrendingUp } from 'lucide-react';
 import { auth, db } from './lib/supabase';
 
 export default function App() {
@@ -24,6 +24,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [showLogin, setShowLogin] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [marketingPage, setMarketingPage] = useState<string | null>(null);
 
   // Check for redirect query parameter
   useEffect(() => {
@@ -97,11 +98,48 @@ export default function App() {
     );
   }
 
+  // Show marketing pages without login
+  if (marketingPage) {
+    const MarketingComponent = {
+      'features': Features,
+      'how-it-works': HowItWorks,
+      'pricing': Pricing,
+      'privacy': Privacy,
+      'terms': Terms,
+      'cookies': Cookies,
+    }[marketingPage];
+
+    if (MarketingComponent) {
+      return (
+        <div className="min-h-screen bg-carbon">
+          <nav className="h-20 border-b border-white/5 flex items-center justify-between px-8 sticky top-0 bg-carbon/80 backdrop-blur-md z-50">
+            <button onClick={() => setMarketingPage(null)} className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-electric rounded-xl flex items-center justify-center shadow-lg shadow-electric/20">
+                <TrendingUp className="text-carbon" size={24} />
+              </div>
+              <div>
+                <h1 className="text-xl font-black tracking-tighter leading-none">TAXFLOW</h1>
+                <span className="text-[10px] font-bold text-electric tracking-[0.2em] uppercase">United States</span>
+              </div>
+            </button>
+            <button 
+              onClick={() => { setShowLogin(true); setMarketingPage(null); }}
+              className="bg-electric text-carbon px-6 py-2.5 rounded-xl font-bold text-sm hover:brightness-110 transition-all shadow-lg shadow-electric/20"
+            >
+              Sign In
+            </button>
+          </nav>
+          <MarketingComponent />
+        </div>
+      );
+    }
+  }
+
   if (!user) {
     if (showLogin) {
       return <LoginPage onBack={() => setShowLogin(false)} />;
     }
-    return <LandingPage onShowLogin={() => setShowLogin(true)} onNavigate={(page) => { setActiveTab(page); setShowLogin(false); setUser({ uid: 'guest', email: 'guest@taxflow.com' }); }} />;
+    return <LandingPage onShowLogin={() => setShowLogin(true)} onNavigate={(page) => setMarketingPage(page)} />;
   }
 
   return (

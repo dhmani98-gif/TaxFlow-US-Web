@@ -76,7 +76,7 @@ export default function LandingPage({ onShowLogin, onNavigate }: LandingPageProp
                 onClick={onShowLogin}
                 className="bg-electric text-carbon px-10 py-5 rounded-2xl font-black text-xl hover:brightness-110 transition-all shadow-2xl shadow-electric/30 flex items-center justify-center gap-3"
               >
-                Start Your Journey for $79/mo
+                Start Your Journey for $19/mo
                 <ArrowRight size={24} />
               </button>
             </div>
