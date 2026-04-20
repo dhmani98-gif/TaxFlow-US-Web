@@ -15,8 +15,9 @@ import HowItWorks from './components/HowItWorks';
 import Privacy from './components/Privacy';
 import Terms from './components/Terms';
 import Cookies from './components/Cookies';
-import { Bell, User, Search, LogIn, Loader2, TrendingUp } from 'lucide-react';
+import { Bell, User, Search, LogIn, Loader2, TrendingUp, AlertCircle } from 'lucide-react';
 import { auth, db } from './lib/supabase';
+import { checkSubscriptionStatus } from './lib/subscriptionCheck';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -25,6 +26,8 @@ export default function App() {
   const [showLogin, setShowLogin] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [marketingPage, setMarketingPage] = useState<string | null>(null);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<'trialing' | 'active' | 'expired' | null>(null);
+  const [trialExpired, setTrialExpired] = useState(false);
 
   // Check for redirect query parameter
   useEffect(() => {
@@ -48,6 +51,11 @@ export default function App() {
           displayName: user.user_metadata?.display_name || user.email?.split('@')[0],
         });
 
+        // Check subscription status
+        const status = await checkSubscriptionStatus();
+        setSubscriptionStatus(status.status);
+        setTrialExpired(!status.canAccess && status.status === 'expired');
+
         // Create organization in background (non-blocking)
         db.getOrganizations(user.id)
           .then(orgs => {
@@ -64,6 +72,8 @@ export default function App() {
           });
       } else {
         setUser(null);
+        setSubscriptionStatus(null);
+        setTrialExpired(false);
       }
       setLoading(false);
     });
@@ -74,6 +84,28 @@ export default function App() {
   }, []);
 
   const renderContent = () => {
+    // If trial expired and not on pricing page, show pricing
+    if (trialExpired && activeTab !== 'pricing') {
+      return (
+        <div className="flex flex-col items-center justify-center h-full py-12">
+          <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-8 max-w-2xl text-center mb-8">
+            <AlertCircle className="text-red-500 mx-auto mb-4" size={48} />
+            <h2 className="text-2xl font-bold text-white mb-2">انتهت الفترة التجريبية</h2>
+            <p className="text-slate-400 mb-6">
+              انتهت فترة التجربة المجانية البالغة 14 يوماً. يرجى الاشتراك في أحد الباقات للمتابعة.
+            </p>
+            <button
+              onClick={() => setActiveTab('pricing')}
+              className="bg-electric text-carbon px-8 py-3 rounded-xl font-bold hover:brightness-110 transition-all"
+            >
+              الاشتراك الآن
+            </button>
+          </div>
+          <Pricing />
+        </div>
+      );
+    }
+
     switch (activeTab) {
       case 'dashboard': return <Dashboard userId={user?.uid} />;
       case 'integrations': return <Integrations userId={user?.uid} />;
@@ -149,54 +181,73 @@ export default function App() {
         
         <main className="flex-1 ml-64 min-h-screen flex flex-col">
           {/* Top Header */}
-          <header className="h-20 bg-carbon border-b border-white/5 px-8 flex items-center justify-between sticky top-0 z-20">
-            <div className="flex items-center gap-4 flex-1">
-              <div className="relative w-96 hidden md:block">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-                <input 
-                  type="text" 
-                  placeholder="Search anything..." 
-                  className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/5 rounded-lg outline-none focus:ring-2 focus:ring-electric/20 focus:border-electric transition-all text-sm text-white"
-                />
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-6">
-              <div className="relative">
-                <button 
-                  onClick={() => setShowNotifications(!showNotifications)}
-                  className="relative p-2 text-slate-400 hover:text-slate-600 transition-colors"
-                >
-                  <Bell size={20} />
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-electric rounded-full border-2 border-carbon"></span>
-                </button>
-
-                {/* Notification Dropdown */}
-                {showNotifications && (
-                  <div className="absolute right-0 mt-2 w-80 bg-carbon border border-electric/30 rounded-xl shadow-xl shadow-electric/20 z-50">
-                    <div className="p-4 border-b border-white/5">
-                      <h4 className="font-bold text-white">Notifications</h4>
-                    </div>
-                    <div className="p-4">
-                      <p className="text-sm text-slate-500 text-center">No new notifications</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-              
-              <div className="h-8 w-px bg-white/5"></div>
-              
-              <div className="flex items-center gap-3 cursor-pointer group" onClick={async () => { await auth.signOut(); setUser(null); }}>
-                <div className="text-right hidden sm:block">
-                  <p className="text-sm font-bold text-white group-hover:text-electric transition-colors">{user.displayName || 'User'}</p>
-                  <p className="text-xs font-medium text-slate-500">Sign Out</p>
+          <header className="bg-carbon border-b border-white/5 px-8 flex flex-col sticky top-0 z-20">
+            {/* Trial Banner */}
+            {subscriptionStatus === 'trialing' && (
+              <div className="bg-electric/10 border-b border-electric/20 px-8 py-2 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="text-electric" size={16} />
+                  <span className="text-sm font-medium text-electric">
+                    فترة تجريبية مجانية - 14 يوم
+                  </span>
                 </div>
-                <img 
-                  src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName}`} 
-                  alt="Profile" 
-                  className="w-10 h-10 rounded-full border-2 border-white/5 group-hover:border-electric transition-all"
-                  referrerPolicy="no-referrer"
-                />
+                <button
+                  onClick={() => setActiveTab('pricing')}
+                  className="text-sm font-bold text-electric hover:underline"
+                >
+                  الاشتراك الآن
+                </button>
+              </div>
+            )}
+            <div className="h-20 flex items-center justify-between">
+              <div className="flex items-center gap-4 flex-1">
+                <div className="relative w-96 hidden md:block">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                  <input
+                    type="text"
+                    placeholder="Search anything..."
+                    className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/5 rounded-lg outline-none focus:ring-2 focus:ring-electric/20 focus:border-electric transition-all text-sm text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-6">
+                <div className="relative">
+                  <button
+                    onClick={() => setShowNotifications(!showNotifications)}
+                    className="relative p-2 text-slate-400 hover:text-slate-600 transition-colors"
+                  >
+                    <Bell size={20} />
+                    <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-electric rounded-full border-2 border-carbon"></span>
+                  </button>
+
+                  {/* Notification Dropdown */}
+                  {showNotifications && (
+                    <div className="absolute right-0 mt-2 w-80 bg-carbon border border-electric/30 rounded-xl shadow-xl shadow-electric/20 z-50">
+                      <div className="p-4 border-b border-white/5">
+                        <h4 className="font-bold text-white">Notifications</h4>
+                      </div>
+                      <div className="p-4">
+                        <p className="text-sm text-slate-500 text-center">No new notifications</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="h-8 w-px bg-white/5"></div>
+
+                <div className="flex items-center gap-3 cursor-pointer group" onClick={async () => { await auth.signOut(); setUser(null); }}>
+                  <div className="text-right hidden sm:block">
+                    <p className="text-sm font-bold text-white group-hover:text-electric transition-colors">{user.displayName || 'User'}</p>
+                    <p className="text-xs font-medium text-slate-500">Sign Out</p>
+                  </div>
+                  <img
+                    src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName}`}
+                    alt="Profile"
+                    className="w-10 h-10 rounded-full border-2 border-white/5 group-hover:border-electric transition-all"
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
               </div>
             </div>
           </header>
