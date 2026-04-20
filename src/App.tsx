@@ -129,15 +129,15 @@ export default function App() {
         <div className="flex flex-col items-center justify-center h-full py-12">
           <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-8 max-w-2xl text-center mb-8">
             <AlertCircle className="text-red-500 mx-auto mb-4" size={48} />
-            <h2 className="text-2xl font-bold text-white mb-2">انتهت الفترة التجريبية</h2>
+            <h2 className="text-2xl font-bold text-white mb-2">Trial Period Ended</h2>
             <p className="text-slate-400 mb-6">
-              انتهت فترة التجربة المجانية البالغة 14 يوماً. يرجى الاشتراك في أحد الباقات للمتابعة.
+              Your 14-day free trial has ended. Please subscribe to a plan to continue.
             </p>
             <button
               onClick={() => setActiveTab('pricing')}
               className="bg-electric text-carbon px-8 py-3 rounded-xl font-bold hover:brightness-110 transition-all"
             >
-              الاشتراك الآن
+              Subscribe Now
             </button>
           </div>
           <Pricing />
@@ -227,14 +227,14 @@ export default function App() {
                 <div className="flex items-center gap-2">
                   <AlertCircle className="text-electric" size={16} />
                   <span className="text-sm font-medium text-electric">
-                    فترة تجريبية مجانية - 14 يوم
+                    Free Trial - 14 Days
                   </span>
                 </div>
                 <button
                   onClick={() => setActiveTab('pricing')}
                   className="text-sm font-bold text-electric hover:underline"
                 >
-                  الاشتراك الآن
+                  Subscribe Now
                 </button>
               </div>
             )}
