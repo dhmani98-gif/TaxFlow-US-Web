@@ -51,10 +51,17 @@ export default function App() {
           displayName: user.user_metadata?.display_name || user.email?.split('@')[0],
         });
 
-        // Check subscription status
-        const status = await checkSubscriptionStatus();
-        setSubscriptionStatus(status.status);
-        setTrialExpired(!status.canAccess && status.status === 'expired');
+        // Check subscription status (with error handling)
+        try {
+          const status = await checkSubscriptionStatus();
+          setSubscriptionStatus(status.status);
+          setTrialExpired(!status.canAccess && status.status === 'expired');
+        } catch (error) {
+          console.error('Subscription check error:', error);
+          // Default to trialing if check fails (allow access)
+          setSubscriptionStatus('trialing');
+          setTrialExpired(false);
+        }
 
         // Create organization in background (non-blocking)
         db.getOrganizations(user.id)
