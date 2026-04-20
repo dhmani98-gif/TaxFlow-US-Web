@@ -9,6 +9,7 @@ interface Plan {
   billing_period: string;
   features: string[];
   is_featured: boolean;
+  checkout_url?: string;
 }
 
 export default function Pricing() {
@@ -36,6 +37,7 @@ export default function Pricing() {
         billing_period: plan.billing_period,
         features: Array.isArray(plan.features) ? plan.features : [],
         is_featured: plan.is_featured || false,
+        checkout_url: plan.checkout_url || undefined,
       }));
       
       setPlans(formattedPlans);
@@ -50,6 +52,7 @@ export default function Pricing() {
           billing_period: 'mo',
           features: ['Up to 100 transactions/month', 'Basic tax calculation', '1 store connection', 'Email support', 'Standard reports'],
           is_featured: false,
+          checkout_url: 'https://taxflow.lemonsqueezy.com/checkout/buy/starter-plan',
         },
         {
           id: '550e8400-e29b-41d4-a716-446655440002',
@@ -58,6 +61,7 @@ export default function Pricing() {
           billing_period: 'mo',
           features: ['Unlimited transactions', 'QuickBooks & Xero sync', 'Advanced Nexus monitoring', 'IRS-ready Schedule C', 'Priority support'],
           is_featured: true,
+          checkout_url: 'https://taxflow.lemonsqueezy.com/checkout/buy/growth-plan',
         },
         {
           id: '550e8400-e29b-41d4-a716-446655440003',
@@ -66,6 +70,7 @@ export default function Pricing() {
           billing_period: 'mo',
           features: ['Unlimited transactions', 'Multi-currency support', 'Dedicated account manager', 'Custom integrations', '24/7 phone support'],
           is_featured: false,
+          checkout_url: 'https://taxflow.lemonsqueezy.com/checkout/buy/enterprise-plan',
         },
       ]);
     }
@@ -82,66 +87,33 @@ export default function Pricing() {
         return;
       }
 
-      // Ensure profile exists (fallback for users created before trigger)
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('id', user.id)
-        .single();
-
-      if (!profile) {
-        // Create profile if it doesn't exist
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            id: user.id,
-            email: user.email,
-            display_name: user.user_metadata?.display_name || user.email?.split('@')[0] || 'User',
-          });
-
-        if (profileError) {
-          alert('Error creating profile. Please try logging out and back in.');
-          setSubscribing(null);
-          return;
-        }
-      }
-
-      // Check if user already has an active subscription
-      const { data: existingSub } = await supabase
-        .from('subscriptions')
+      // Get plan details
+      const { data: plan, error: planError } = await supabase
+        .from('subscription_plans')
         .select('*')
-        .eq('profile_id', user.id)
-        .eq('status', 'active')
+        .eq('id', planId)
         .single();
 
-      if (existingSub) {
-        alert('You already have an active subscription. Please cancel it first.');
+      if (planError || !plan) {
+        alert('Plan not found. Please try again.');
         setSubscribing(null);
         return;
       }
 
-      // Create Stripe checkout session
-      const response = await fetch('https://taxflow-stripe-server.up.railway.app/api/create-checkout-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, planId }),
-      });
-
-      const data = await response.json();
-
-      if (data.url) {
-        // Open Stripe checkout in new tab
-        window.open(data.url, '_blank');
+      // Check if LemonSqueezy checkout URL is configured
+      if (plan.checkout_url) {
+        // Redirect to LemonSqueezy checkout
+        const checkoutUrl = new URL(plan.checkout_url);
+        checkoutUrl.searchParams.set('checkout[email]', user.email || '');
+        checkoutUrl.searchParams.set('checkout[custom][user_id]', user.id);
+        window.open(checkoutUrl.toString(), '_blank');
       } else {
-        throw new Error(data.error || 'Failed to create checkout session');
+        // Fallback: show message that checkout is not configured
+        alert('This plan is not yet available for purchase. Please contact support.');
       }
     } catch (error: any) {
       console.error('Subscription error:', error);
-      if (error.message.includes('fetch')) {
-        alert('هناك مشكلة مؤقتة في الاتصال بخدمة الدفع. يرجى المحاولة مرة أخرى لاحقاً أو التواصل مع الدعم الفني.');
-      } else {
-        alert(`حدث خطأ: ${error.message}. يرجى المحاولة مرة أخرى.`);
-      }
+      alert(`حدث خطأ: ${error.message}. يرجى المحاولة مرة أخرى.`);
     } finally {
       setSubscribing(null);
     }
@@ -215,7 +187,7 @@ export default function Pricing() {
         </div>
         <div className="flex items-center gap-2">
           <CreditCard size={20} />
-          <span className="text-sm font-bold">Powered by Stripe</span>
+          <span className="text-sm font-bold">Powered by LemonSqueezy</span>
         </div>
       </div>
     </div>
