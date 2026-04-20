@@ -87,14 +87,10 @@ export default function Pricing() {
         return;
       }
 
-      // Get plan details
-      const { data: plan, error: planError } = await supabase
-        .from('subscription_plans')
-        .select('*')
-        .eq('id', planId)
-        .single();
+      // Find plan from already loaded plans (avoid second database query)
+      const plan = plans.find(p => p.id === planId);
 
-      if (planError || !plan) {
+      if (!plan) {
         alert('Plan not found. Please try again.');
         setSubscribing(null);
         return;
