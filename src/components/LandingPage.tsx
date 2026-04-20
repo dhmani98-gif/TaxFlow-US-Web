@@ -186,7 +186,7 @@ export default function LandingPage({ onShowLogin, onNavigate }: LandingPageProp
               <div className="text-center mb-8">
                 <h3 className="text-2xl font-black mb-4">Enterprise</h3>
                 <div className="flex items-baseline gap-2 justify-center">
-                  <span className="text-6xl font-black text-white">$99</span>
+                  <span className="text-6xl font-black text-white">$69</span>
                   <span className="text-slate-400 font-bold">/ month</span>
                 </div>
               </div>

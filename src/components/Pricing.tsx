@@ -66,11 +66,11 @@ export default function Pricing() {
         {
           id: '550e8400-e29b-41d4-a716-446655440003',
           name: 'Enterprise',
-          price: 99,
+          price: 69,
           billing_period: 'mo',
           features: ['Unlimited transactions', 'Multi-currency support', 'Dedicated account manager', 'Custom integrations', '24/7 phone support'],
           is_featured: false,
-          checkout_url: 'https://taxflow.lemonsqueezy.com/checkout/buy/enterprise-plan',
+          checkout_url: 'https://taxflow.lemonsqueezy.com/checkout/buy/e9e4e4cb-da7e-496c-928b-8343e330459a',
         },
       ]);
     }
