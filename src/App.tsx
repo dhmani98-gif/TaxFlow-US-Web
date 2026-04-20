@@ -16,7 +16,7 @@ import Privacy from './components/Privacy';
 import Terms from './components/Terms';
 import Cookies from './components/Cookies';
 import { Bell, User, Search, LogIn, Loader2, TrendingUp, AlertCircle } from 'lucide-react';
-import { auth, db } from './lib/supabase';
+import { auth, db, supabase } from './lib/supabase';
 import { checkSubscriptionStatus } from './lib/subscriptionCheck';
 
 export default function App() {
@@ -39,54 +39,86 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    // Check auth state with Supabase
-    const { data: { subscription } } = auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth event:', event, 'Session:', session);
+    // Check initial session first
+    const checkInitialSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        console.log('Initial session:', session, 'Error:', error);
 
-      if (session?.user) {
-        const user = session.user;
-        setUser({
-          uid: user.id,
-          email: user.email || '',
-          displayName: user.user_metadata?.display_name || user.email?.split('@')[0],
-        });
+        if (session?.user) {
+          const user = session.user;
+          setUser({
+            uid: user.id,
+            email: user.email || '',
+            displayName: user.user_metadata?.display_name || user.email?.split('@')[0],
+          });
 
-        // Check subscription status (with error handling)
-        try {
-          const status = await checkSubscriptionStatus();
-          setSubscriptionStatus(status.status);
-          setTrialExpired(!status.canAccess && status.status === 'expired');
-        } catch (error) {
-          console.error('Subscription check error:', error);
-          // Default to trialing if check fails (allow access)
-          setSubscriptionStatus('trialing');
+          // Check subscription status (with error handling)
+          try {
+            const status = await checkSubscriptionStatus();
+            setSubscriptionStatus(status.status);
+            setTrialExpired(!status.canAccess && status.status === 'expired');
+          } catch (error) {
+            console.error('Subscription check error:', error);
+            setSubscriptionStatus('trialing');
+            setTrialExpired(false);
+          }
+
+          // Create organization in background
+          db.getOrganizations(user.id)
+            .then(orgs => {
+              if (orgs.length === 0) {
+                return db.createOrganization({
+                  profile_id: user.id,
+                  name: 'My Business',
+                  tax_year: new Date().getFullYear(),
+                });
+              }
+            })
+            .catch(err => {
+              console.error('Organization creation error:', err);
+            });
+        } else {
+          setUser(null);
+          setSubscriptionStatus(null);
           setTrialExpired(false);
         }
-
-        // Create organization in background (non-blocking)
-        db.getOrganizations(user.id)
-          .then(orgs => {
-            if (orgs.length === 0) {
-              return db.createOrganization({
-                profile_id: user.id,
-                name: 'My Business',
-                tax_year: new Date().getFullYear(),
-              });
-            }
-          })
-          .catch(err => {
-            console.error('Organization creation error:', err);
-          });
-      } else {
+      } catch (error) {
+        console.error('Session check error:', error);
         setUser(null);
         setSubscriptionStatus(null);
         setTrialExpired(false);
       }
       setLoading(false);
+    };
+
+    checkInitialSession();
+
+    // Subscribe to auth changes
+    const { data: { subscription } } = auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth event:', event, 'Session:', session);
+
+      if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setSubscriptionStatus(null);
+        setTrialExpired(false);
+      }
     });
+
+    // Fallback: Force loading to false after 5 seconds
+    const fallbackTimeout = setTimeout(() => {
+      setLoading(prev => {
+        if (prev) {
+          console.log('Fallback: Forcing loading to false');
+          return false;
+        }
+        return prev;
+      });
+    }, 5000);
 
     return () => {
       subscription.unsubscribe();
+      clearTimeout(fallbackTimeout);
     };
   }, []);
 
