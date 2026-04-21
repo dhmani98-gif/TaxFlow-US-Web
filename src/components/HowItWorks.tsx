@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { 
   Link2, 
   Cpu, 
@@ -48,7 +49,13 @@ export default function HowItWorks() {
     <div className="min-h-screen bg-carbon py-20 px-4">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <motion.div 
+          className="text-center mb-20"
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-100px' }}
+          transition={{ duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] }}
+        >
           <h1 className="text-5xl font-black text-white mb-6 tracking-tight">
             How TAXFLOW
             <span className="text-electric"> Works</span>
@@ -57,15 +64,18 @@ export default function HowItWorks() {
             Three simple steps to automate your entire tax compliance workflow. 
             We handle the complexity so you can focus on your business.
           </p>
-        </div>
+        </motion.div>
 
         {/* Steps */}
         <div className="space-y-12 mb-20">
           {steps.map((step, index) => (
-            <div
+            <motion.div
               key={index}
-              className="relative animate-in fade-in slide-in-from-bottom-4 duration-700"
-              style={{ animationDelay: `${index * 150}ms` }}
+              className="relative"
+              initial={{ opacity: 0, y: 50 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-50px' }}
+              transition={{ duration: 0.6, delay: index * 0.15, ease: [0.25, 0.46, 0.45, 0.94] }}
             >
               {/* Connector Line */}
               {index < steps.length - 1 && (
@@ -74,12 +84,16 @@ export default function HowItWorks() {
               
               <div className="flex flex-col lg:flex-row gap-8 items-start">
                 {/* Step Number & Icon */}
-                <div className="flex-shrink-0">
-                  <div className="w-32 h-32 bg-[#111] border border-white/5 rounded-2xl flex flex-col items-center justify-center relative z-10">
+                <motion.div 
+                  className="flex-shrink-0"
+                  whileHover={{ scale: 1.02 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <div className="w-32 h-32 bg-[#111] border border-white/5 rounded-2xl flex flex-col items-center justify-center relative z-10 hover:border-electric/30 transition-all">
                     <span className="text-3xl font-black text-electric mb-2">{step.step}</span>
                     <step.icon className="text-white" size={32} />
                   </div>
-                </div>
+                </motion.div>
 
                 {/* Content */}
                 <div className="flex-1 bg-[#111] border border-white/5 rounded-2xl p-8">
@@ -88,31 +102,48 @@ export default function HowItWorks() {
                   
                   <ul className="space-y-3">
                     {step.details.map((detail, detailIndex) => (
-                      <li key={detailIndex} className="flex items-center gap-3 text-slate-300">
+                      <motion.li 
+                        key={detailIndex} 
+                        className="flex items-center gap-3 text-slate-300"
+                        initial={{ opacity: 0, x: -20 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.4, delay: 0.3 + detailIndex * 0.1 }}
+                      >
                         <CheckCircle2 className="text-electric flex-shrink-0" size={20} />
                         <span>{detail}</span>
-                      </li>
+                      </motion.li>
                     ))}
                   </ul>
                 </div>
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
 
         {/* CTA Section */}
-        <div className="bg-gradient-to-r from-electric/10 to-electric/5 border border-electric/20 rounded-3xl p-12 text-center animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <motion.div 
+          className="bg-gradient-to-r from-electric/10 to-electric/5 border border-electric/20 rounded-3xl p-12 text-center"
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-50px' }}
+          transition={{ duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] }}
+        >
           <h2 className="text-3xl font-bold text-white mb-4">
             Start Automating Your Taxes Today
           </h2>
           <p className="text-slate-400 mb-8 max-w-xl mx-auto">
             Join thousands of retailers who save hours every month with TAXFLOW's automated tax compliance.
           </p>
-          <button className="bg-electric text-carbon px-8 py-4 rounded-xl font-bold text-lg hover:brightness-110 transition-all shadow-xl shadow-electric/20 flex items-center gap-3 mx-auto">
+          <motion.button 
+            className="bg-electric text-carbon px-8 py-4 rounded-xl font-bold text-lg hover:brightness-110 transition-all shadow-xl shadow-electric/20 flex items-center gap-3 mx-auto"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
             Start Free Trial
             <ArrowRight size={20} />
-          </button>
-        </div>
+          </motion.button>
+        </motion.div>
       </div>
     </div>
   );

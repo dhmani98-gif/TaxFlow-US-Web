@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { 
   Link2, 
   Calculator, 
@@ -53,7 +54,13 @@ export default function Features() {
     <div className="min-h-screen bg-carbon py-20 px-4">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-16 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <motion.div 
+          className="text-center mb-16"
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-100px' }}
+          transition={{ duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] }}
+        >
           <h1 className="text-5xl font-black text-white mb-6 tracking-tight">
             Powerful Features for
             <span className="text-electric"> Modern Retailers</span>
@@ -62,15 +69,19 @@ export default function Features() {
             TAXFLOW automates your entire tax workflow, from data collection to filing. 
             Focus on growing your business while we handle the numbers.
           </p>
-        </div>
+        </motion.div>
 
         {/* Features Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {features.map((feature, index) => (
-            <div
+            <motion.div
               key={index}
-              className="bg-[#111] border border-white/5 rounded-2xl p-8 hover:border-electric/30 transition-all duration-300 group animate-in fade-in slide-in-from-bottom-4 duration-700"
-              style={{ animationDelay: `${index * 100}ms` }}
+              className="bg-[#111] border border-white/5 rounded-2xl p-8 hover:border-electric/30 transition-all duration-300 group"
+              initial={{ opacity: 0, y: 50 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-50px' }}
+              transition={{ duration: 0.5, delay: index * 0.1, ease: [0.25, 0.46, 0.45, 0.94] }}
+              whileHover={{ scale: 1.02, y: -5 }}
             >
               <div className="w-14 h-14 bg-electric/10 rounded-xl flex items-center justify-center mb-6 group-hover:bg-electric/20 transition-all">
                 <feature.icon className="text-electric" size={28} />
@@ -81,23 +92,33 @@ export default function Features() {
                 <span className="w-1.5 h-1.5 bg-electric rounded-full"></span>
                 {feature.highlight}
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
 
         {/* CTA Section */}
-        <div className="mt-20 bg-gradient-to-r from-electric/10 to-electric/5 border border-electric/20 rounded-3xl p-12 text-center animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <motion.div 
+          className="mt-20 bg-gradient-to-r from-electric/10 to-electric/5 border border-electric/20 rounded-3xl p-12 text-center"
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-50px' }}
+          transition={{ duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] }}
+        >
           <h2 className="text-3xl font-bold text-white mb-4">
             Ready to Simplify Your Tax Compliance?
           </h2>
           <p className="text-slate-400 mb-8 max-w-xl mx-auto">
             Join thousands of retailers who trust TAXFLOW to automate their tax calculations and filings.
           </p>
-          <button className="bg-electric text-carbon px-8 py-4 rounded-xl font-bold text-lg hover:brightness-110 transition-all shadow-xl shadow-electric/20 flex items-center gap-3 mx-auto">
+          <motion.button 
+            className="bg-electric text-carbon px-8 py-4 rounded-xl font-bold text-lg hover:brightness-110 transition-all shadow-xl shadow-electric/20 flex items-center gap-3 mx-auto"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
             Get Started Free
             <ArrowRight size={20} />
-          </button>
-        </div>
+          </motion.button>
+        </motion.div>
       </div>
     </div>
   );

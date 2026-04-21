@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { Check, Zap, Shield, CreditCard, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -116,26 +117,49 @@ export default function Pricing() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto py-12 px-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="text-center mb-16">
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
+      className="max-w-4xl mx-auto py-12 px-4"
+    >
+      <motion.div 
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.1 }}
+        className="text-center mb-16"
+      >
         <h2 className="text-4xl font-black text-white mb-4 tracking-tight">Save Thousands on Accounting Costs</h2>
         <p className="text-slate-500 text-lg">Replace manual bookkeeping with automated tax compliance. Starting at just $19/month.</p>
-      </div>
+      </motion.div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {plans.map((plan) => (
-          <div
+        {plans.map((plan, index) => (
+          <motion.div
             key={plan.id}
-            className={`card bg-carbon p-8 relative transition-all ${
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 + index * 0.1, ease: [0.25, 0.46, 0.45, 0.94] }}
+            whileHover={{ 
+              scale: 1.02,
+              transition: { duration: 0.2, ease: 'easeOut' }
+            }}
+            whileTap={{ scale: 0.98 }}
+            className={`card bg-carbon p-8 relative cursor-pointer ${
               plan.is_featured
                 ? 'border-2 border-cyan-400 shadow-2xl shadow-cyan-400/20 scale-105'
-                : 'border border-white/5 hover:border-white/10'
+                : 'border border-white/5 hover:border-white/20'
             }`}
           >
             {plan.is_featured && (
-              <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-cyan-400 text-carbon px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.3, delay: 0.5 }}
+                className="absolute -top-4 left-1/2 -translate-x-1/2 bg-cyan-400 text-carbon px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest"
+              >
                 Most Popular
-              </div>
+              </motion.div>
             )}
             
             <h3 className="text-xl font-bold mb-2 text-white">{plan.name}</h3>
@@ -147,18 +171,27 @@ export default function Pricing() {
             </div>
             
             <ul className="space-y-4 mb-8">
-              {plan.features.map((feature) => (
-                <FeatureItem text={String(feature)} />
+              {plan.features.map((feature, featureIndex) => (
+                <motion.li
+                  key={featureIndex}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.3, delay: 0.3 + index * 0.1 + featureIndex * 0.05 }}
+                >
+                  <FeatureItem text={String(feature)} />
+                </motion.li>
               ))}
             </ul>
             
-            <button
+            <motion.button
               onClick={() => handleSubscribe(plan.id)}
               disabled={subscribing !== null}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.95 }}
               className={`w-full py-4 rounded-xl font-bold text-lg transition-all flex items-center justify-center gap-2 ${
                 plan.is_featured
                   ? 'bg-cyan-400 text-carbon hover:brightness-110 shadow-xl shadow-cyan-400/20'
-                  : 'border-2 border-white/5 text-slate-400 hover:bg-white/5'
+                  : 'border-2 border-white/5 text-slate-400 hover:bg-white/5 hover:border-white/20'
               }`}
             >
               {subscribing === plan.id ? (
@@ -171,8 +204,8 @@ export default function Pricing() {
               ) : (
                 'Get Started'
               )}
-            </button>
-          </div>
+            </motion.button>
+          </motion.div>
         ))}
       </div>
 
@@ -186,7 +219,7 @@ export default function Pricing() {
           <span className="text-sm font-bold">Powered by LemonSqueezy</span>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 

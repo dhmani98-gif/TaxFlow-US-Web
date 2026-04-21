@@ -1,4 +1,6 @@
 import React from 'react';
+import { motion, useInView } from 'framer-motion';
+import { useRef } from 'react';
 import { 
   TrendingUp, 
   ShieldCheck, 
@@ -63,24 +65,46 @@ export default function LandingPage({ onShowLogin, onNavigate }: LandingPageProp
         </div>
         
         <div className="max-w-7xl mx-auto text-center relative z-10">
-          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-1000">
-            <h1 className="text-6xl lg:text-7xl font-black leading-[1.1] tracking-tight text-white">
+          <motion.div 
+            className="space-y-8"
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
+          >
+            <motion.h1 
+              className="text-6xl lg:text-7xl font-black leading-[1.1] tracking-tight text-white"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.1, ease: [0.25, 0.46, 0.45, 0.94] }}
+            >
               TaxFlow US | <br/>
               <span className="text-electric">US Tax Accounting Made Easier.</span>
-            </h1>
-            <p className="text-xl text-slate-400 leading-relaxed max-w-2xl mx-auto">
+            </motion.h1>
+            <motion.p 
+              className="text-xl text-slate-400 leading-relaxed max-w-2xl mx-auto"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
+            >
               Don't waste your time on complex tables. We connect your Shopify and Amazon sales and prepare your IRS reports with the click of a button.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 pt-4 justify-center">
-              <button 
+            </motion.p>
+            <motion.div 
+              className="flex flex-col sm:flex-row gap-4 pt-4 justify-center"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+            >
+              <motion.button 
                 onClick={onShowLogin}
                 className="bg-electric text-carbon px-10 py-5 rounded-2xl font-black text-xl hover:brightness-110 transition-all shadow-2xl shadow-electric/30 flex items-center justify-center gap-3"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
               >
                 Start Your Journey for $19/mo
                 <ArrowRight size={24} />
-              </button>
-            </div>
-          </div>
+              </motion.button>
+            </motion.div>
+          </motion.div>
         </div>
       </section>
 
@@ -124,14 +148,27 @@ export default function LandingPage({ onShowLogin, onNavigate }: LandingPageProp
       {/* Pricing Section */}
       <section id="pricing" className="py-32 px-8">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
+          <motion.div 
+            className="text-center mb-16"
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-100px' }}
+            transition={{ duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] }}
+          >
             <h2 className="text-4xl font-black text-white mb-4">Simple, Transparent Pricing</h2>
             <p className="text-slate-400">Choose the plan that fits your business scale. Starting at just $19/month.</p>
-          </div>
+          </motion.div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Starter Plan */}
-            <div className="bg-[#111] rounded-[3rem] p-8 text-white border border-white/5 hover:border-electric/20 transition-all">
+            <motion.div 
+              className="bg-[#111] rounded-[3rem] p-8 text-white border border-white/5 hover:border-electric/20 transition-all"
+              initial={{ opacity: 0, y: 60 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-50px' }}
+              transition={{ duration: 0.6, delay: 0.1, ease: [0.25, 0.46, 0.45, 0.94] }}
+              whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
+            >
               <div className="text-center mb-8">
                 <h3 className="text-2xl font-black mb-4">Starter</h3>
                 <div className="flex items-baseline gap-2 justify-center">
@@ -139,12 +176,14 @@ export default function LandingPage({ onShowLogin, onNavigate }: LandingPageProp
                   <span className="text-slate-400 font-bold">/ month</span>
                 </div>
               </div>
-              <button 
+              <motion.button 
                 onClick={() => onNavigate('pricing')}
                 className="w-full bg-white/10 text-white py-4 rounded-2xl font-bold text-lg hover:bg-white/20 transition-all mb-8"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
               >
                 Get Started
-              </button>
+              </motion.button>
               <div className="space-y-4">
                 <CheckItem text="Up to 100 transactions/month" />
                 <CheckItem text="Basic tax calculation" />
@@ -152,13 +191,26 @@ export default function LandingPage({ onShowLogin, onNavigate }: LandingPageProp
                 <CheckItem text="Email support" />
                 <CheckItem text="Standard reports" />
               </div>
-            </div>
+            </motion.div>
 
             {/* Growth Plan */}
-            <div className="bg-[#111] rounded-[3rem] p-8 text-white border-2 border-electric relative overflow-hidden shadow-2xl shadow-electric/20 scale-105">
-              <div className="absolute top-4 right-4 bg-electric text-carbon text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest">
+            <motion.div 
+              className="bg-[#111] rounded-[3rem] p-8 text-white border-2 border-electric relative overflow-hidden shadow-2xl shadow-electric/20 scale-105"
+              initial={{ opacity: 0, y: 60 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-50px' }}
+              transition={{ duration: 0.6, delay: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
+              whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
+            >
+              <motion.div 
+                className="absolute top-4 right-4 bg-electric text-carbon text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest"
+                initial={{ opacity: 0, scale: 0.8 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.3, delay: 0.5 }}
+              >
                 Most Popular
-              </div>
+              </motion.div>
               <div className="text-center mb-8">
                 <h3 className="text-2xl font-black mb-4 text-electric">Growth</h3>
                 <div className="flex items-baseline gap-2 justify-center">
@@ -166,12 +218,14 @@ export default function LandingPage({ onShowLogin, onNavigate }: LandingPageProp
                   <span className="text-slate-400 font-bold">/ month</span>
                 </div>
               </div>
-              <button 
+              <motion.button 
                 onClick={() => onNavigate('pricing')}
                 className="w-full bg-electric text-carbon py-4 rounded-2xl font-bold text-lg hover:brightness-110 transition-all mb-8 shadow-xl shadow-electric/20"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
               >
                 Subscribe to Growth
-              </button>
+              </motion.button>
               <div className="space-y-4">
                 <CheckItem text="Unlimited transactions" />
                 <CheckItem text="QuickBooks & Xero sync" />
@@ -179,10 +233,17 @@ export default function LandingPage({ onShowLogin, onNavigate }: LandingPageProp
                 <CheckItem text="IRS-ready Schedule C" />
                 <CheckItem text="Priority support" />
               </div>
-            </div>
+            </motion.div>
 
             {/* Enterprise Plan */}
-            <div className="bg-[#111] rounded-[3rem] p-8 text-white border border-white/5 hover:border-electric/20 transition-all">
+            <motion.div 
+              className="bg-[#111] rounded-[3rem] p-8 text-white border border-white/5 hover:border-electric/20 transition-all"
+              initial={{ opacity: 0, y: 60 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-50px' }}
+              transition={{ duration: 0.6, delay: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+              whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
+            >
               <div className="text-center mb-8">
                 <h3 className="text-2xl font-black mb-4">Enterprise</h3>
                 <div className="flex items-baseline gap-2 justify-center">
@@ -190,12 +251,14 @@ export default function LandingPage({ onShowLogin, onNavigate }: LandingPageProp
                   <span className="text-slate-400 font-bold">/ month</span>
                 </div>
               </div>
-              <button 
+              <motion.button 
                 onClick={() => onNavigate('pricing')}
                 className="w-full bg-white/10 text-white py-4 rounded-2xl font-bold text-lg hover:bg-white/20 transition-all mb-8"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
               >
                 Contact Sales
-              </button>
+              </motion.button>
               <div className="space-y-4">
                 <CheckItem text="Unlimited transactions" />
                 <CheckItem text="Multi-currency support" />
@@ -203,7 +266,7 @@ export default function LandingPage({ onShowLogin, onNavigate }: LandingPageProp
                 <CheckItem text="Custom integrations" />
                 <CheckItem text="24/7 phone support" />
               </div>
-            </div>
+            </motion.div>
           </div>
         </div>
       </section>

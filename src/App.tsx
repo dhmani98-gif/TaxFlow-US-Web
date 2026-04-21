@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Provider } from 'react-redux';
+import { AnimatePresence, motion } from 'framer-motion';
 import { store } from './store';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
@@ -15,6 +16,8 @@ import HowItWorks from './components/HowItWorks';
 import Privacy from './components/Privacy';
 import Terms from './components/Terms';
 import Cookies from './components/Cookies';
+import { LoadingProgressBar } from './components/LoadingProgressBar';
+import { SkeletonDashboard } from './components/Skeleton';
 import { Bell, User, Search, LogIn, Loader2, TrendingUp, AlertCircle } from 'lucide-react';
 import { auth, db, supabase } from './lib/supabase';
 import { checkSubscriptionStatus } from './lib/subscriptionCheck';
@@ -161,10 +164,27 @@ export default function App() {
     }
   };
 
+  // Wrap content with page transition
+  const renderContentWithTransition = () => (
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={activeTab}
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: -20 }}
+        transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+        className="h-full"
+      >
+        {renderContent()}
+      </motion.div>
+    </AnimatePresence>
+  );
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-carbon flex items-center justify-center">
-        <Loader2 className="animate-spin text-electric" size={48} />
+      <div className="min-h-screen bg-carbon">
+        <LoadingProgressBar isLoading={loading} />
+        <SkeletonDashboard />
       </div>
     );
   }
@@ -216,6 +236,7 @@ export default function App() {
   return (
     <Provider store={store}>
       <div className="min-h-screen bg-carbon flex">
+        <LoadingProgressBar isLoading={false} />
         <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
         
         <main className="flex-1 ml-64 min-h-screen flex flex-col">
@@ -293,7 +314,7 @@ export default function App() {
           
           {/* Page Content */}
           <div className="p-8 max-w-7xl w-full mx-auto">
-            {renderContent()}
+            {renderContentWithTransition()}
           </div>
         </main>
       </div>
