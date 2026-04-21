@@ -9,6 +9,7 @@ import Transactions from './components/Transactions';
 import Reports from './components/Reports';
 import Pricing from './components/Pricing';
 import Settings from './components/Settings';
+import AccountantPortal from './components/AccountantPortal';
 import LandingPage from './components/LandingPage';
 import LoginPage from './components/LoginPage';
 import Features from './components/Features';
@@ -148,6 +149,33 @@ export default function App() {
       );
     }
 
+    if (marketingPage) {
+      switch (marketingPage) {
+        case 'features':
+          return <Features />;
+        case 'how-it-works':
+          return <HowItWorks />;
+        case 'pricing':
+          return <Pricing />;
+        case 'privacy':
+          return <Privacy />;
+        case 'terms':
+          return <Terms />;
+        case 'cookies':
+          return <Cookies />;
+        default:
+          return <LandingPage onShowLogin={() => setShowLogin(true)} onNavigate={(page) => setMarketingPage(page)} />;
+      }
+    }
+
+    if (showLogin) {
+      return <LoginPage onBack={() => setShowLogin(false)} />;
+    }
+
+    if (!user) {
+      return <LandingPage onShowLogin={() => setShowLogin(true)} onNavigate={(page) => setMarketingPage(page)} />;
+    }
+
     switch (activeTab) {
       case 'dashboard': return <Dashboard userId={user?.uid} />;
       case 'integrations': return <Integrations userId={user?.uid} />;
@@ -160,6 +188,7 @@ export default function App() {
       case 'privacy': return <Privacy />;
       case 'terms': return <Terms />;
       case 'cookies': return <Cookies />;
+      case 'accountant': return <AccountantPortal userId={user?.uid} />;
       default: return <Dashboard userId={user?.uid} />;
     }
   };
