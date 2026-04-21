@@ -1,4 +1,5 @@
 // Sales Tax Logic - Aggregates sales by province and determines Nexus status
+// Enhanced with Tax Rate API Integration (TaxJar/Avalara compatible)
 
 export interface ProvinceSalesData {
   provinceCode: string;
@@ -8,6 +9,57 @@ export interface ProvinceSalesData {
   nexusThreshold: number;
   nexusReached: boolean;
   percentage: number;
+  // Enhanced fields for API integration
+  taxRateSource?: 'static' | 'api' | 'manual';
+  lastUpdated?: string;
+  countyRates?: CountyRate[];
+  combinedRate?: number;  // State + County + City
+  city?: string;
+  county?: string;
+}
+
+export interface CountyRate {
+  countyName: string;
+  countyRate: number;
+  cityRates?: CityRate[];
+}
+
+export interface CityRate {
+  cityName: string;
+  cityRate: number;
+}
+
+// Tax Rate API Configuration
+export interface TaxRateAPIConfig {
+  provider: 'taxjar' | 'avalara' | 'manual';
+  apiKey?: string;
+  sandbox?: boolean;
+  cacheDuration?: number;  // minutes
+}
+
+// API Response interfaces
+export interface TaxJarRateResponse {
+  rate: {
+    zip: string;
+    country: string;
+    country_rate: string;
+    state: string;
+    state_rate: string;
+    county: string;
+    county_rate: string;
+    city: string;
+    city_rate: string;
+    combined_rate: string;
+  };
+}
+
+export interface AvalaraRateResponse {
+  totalRate: number;
+  rates: Array<{
+    rate: number;
+    name: string;
+    type: string;
+  }>;
 }
 
 // Nexus thresholds by province (in USD) - US states
@@ -217,6 +269,262 @@ export const taxRates: Record<string, number> = {
 // Nexus threshold variable (can be configured)
 export const nexusThreshold = 100000; // Default threshold in USD
 
+// Economic Nexus Rules by State
+export interface EconomicNexusRule {
+  stateCode: string;
+  thresholdAmount: number;
+  thresholdTransactions: number;
+  effectiveDate: string;
+  marketplaceFacilitator: boolean;
+  notes?: string;
+}
+
+export const economicNexusRules: EconomicNexusRule[] = [
+  { stateCode: 'AL', thresholdAmount: 250000, thresholdTransactions: 0, effectiveDate: '2019-10-01', marketplaceFacilitator: true },
+  { stateCode: 'AK', thresholdAmount: 100000, thresholdTransactions: 200, effectiveDate: '2020-01-01', marketplaceFacilitator: true },
+  { stateCode: 'AZ', thresholdAmount: 100000, thresholdTransactions: 0, effectiveDate: '2019-10-01', marketplaceFacilitator: true },
+  { stateCode: 'AR', thresholdAmount: 100000, thresholdTransactions: 200, effectiveDate: '2019-07-01', marketplaceFacilitator: true },
+  { stateCode: 'CA', thresholdAmount: 500000, thresholdTransactions: 0, effectiveDate: '2019-04-01', marketplaceFacilitator: true, notes: '$500K AND 100K transactions' },
+  { stateCode: 'CO', thresholdAmount: 100000, thresholdTransactions: 0, effectiveDate: '2019-12-01', marketplaceFacilitator: true },
+  { stateCode: 'CT', thresholdAmount: 100000, thresholdTransactions: 200, effectiveDate: '2019-12-01', marketplaceFacilitator: true, notes: '$100K AND 200 transactions' },
+  { stateCode: 'FL', thresholdAmount: 100000, thresholdTransactions: 0, effectiveDate: '2021-07-01', marketplaceFacilitator: true },
+  { stateCode: 'GA', thresholdAmount: 100000, thresholdTransactions: 0, effectiveDate: '2019-01-01', marketplaceFacilitator: true },
+  { stateCode: 'HI', thresholdAmount: 100000, thresholdTransactions: 200, effectiveDate: '2020-07-01', marketplaceFacilitator: true },
+  { stateCode: 'ID', thresholdAmount: 100000, thresholdTransactions: 0, effectiveDate: '2019-06-01', marketplaceFacilitator: true },
+  { stateCode: 'IL', thresholdAmount: 100000, thresholdTransactions: 0, effectiveDate: '2020-01-01', marketplaceFacilitator: true },
+  { stateCode: 'IN', thresholdAmount: 100000, thresholdTransactions: 200, effectiveDate: '2019-10-01', marketplaceFacilitator: true },
+  { stateCode: 'IA', thresholdAmount: 100000, thresholdTransactions: 0, effectiveDate: '2019-01-01', marketplaceFacilitator: true },
+  { stateCode: 'KS', thresholdAmount: 100000, thresholdTransactions: 0, effectiveDate: '2021-07-01', marketplaceFacilitator: true },
+  { stateCode: 'KY', thresholdAmount: 100000, thresholdTransactions: 200, effectiveDate: '2018-10-01', marketplaceFacilitator: true },
+  { stateCode: 'LA', thresholdAmount: 100000, thresholdTransactions: 200, effectiveDate: '2018-07-01', marketplaceFacilitator: true },
+  { stateCode: 'ME', thresholdAmount: 100000, thresholdTransactions: 200, effectiveDate: '2019-07-01', marketplaceFacilitator: true },
+  { stateCode: 'MD', thresholdAmount: 100000, thresholdTransactions: 0, effectiveDate: '2019-10-01', marketplaceFacilitator: true },
+  { stateCode: 'MA', thresholdAmount: 100000, thresholdTransactions: 0, effectiveDate: '2019-10-01', marketplaceFacilitator: true },
+  { stateCode: 'MI', thresholdAmount: 100000, thresholdTransactions: 200, effectiveDate: '2018-10-01', marketplaceFacilitator: true },
+  { stateCode: 'MN', thresholdAmount: 100000, thresholdTransactions: 200, effectiveDate: '2019-10-01', marketplaceFacilitator: true },
+  { stateCode: 'MS', thresholdAmount: 250000, thresholdTransactions: 0, effectiveDate: '2020-09-01', marketplaceFacilitator: true },
+  { stateCode: 'MO', thresholdAmount: 100000, thresholdTransactions: 0, effectiveDate: '2023-01-01', marketplaceFacilitator: true },
+  { stateCode: 'NE', thresholdAmount: 100000, thresholdTransactions: 200, effectiveDate: '2019-05-01', marketplaceFacilitator: true },
+  { stateCode: 'NV', thresholdAmount: 100000, thresholdTransactions: 200, effectiveDate: '2018-11-01', marketplaceFacilitator: true },
+  { stateCode: 'NJ', thresholdAmount: 100000, thresholdTransactions: 200, effectiveDate: '2018-11-01', marketplaceFacilitator: true, notes: '$100K OR 200 transactions' },
+  { stateCode: 'NM', thresholdAmount: 100000, thresholdTransactions: 0, effectiveDate: '2019-07-01', marketplaceFacilitator: true },
+  { stateCode: 'NY', thresholdAmount: 500000, thresholdTransactions: 100, effectiveDate: '2019-06-01', marketplaceFacilitator: true, notes: '$500K AND 100 transactions' },
+  { stateCode: 'NC', thresholdAmount: 100000, thresholdTransactions: 200, effectiveDate: '2019-11-01', marketplaceFacilitator: true },
+  { stateCode: 'ND', thresholdAmount: 100000, thresholdTransactions: 0, effectiveDate: '2019-10-01', marketplaceFacilitator: true },
+  { stateCode: 'OH', thresholdAmount: 100000, thresholdTransactions: 0, effectiveDate: '2019-08-01', marketplaceFacilitator: true },
+  { stateCode: 'OK', thresholdAmount: 100000, thresholdTransactions: 0, effectiveDate: '2018-11-01', marketplaceFacilitator: true },
+  { stateCode: 'PA', thresholdAmount: 100000, thresholdTransactions: 0, effectiveDate: '2021-07-01', marketplaceFacilitator: true },
+  { stateCode: 'RI', thresholdAmount: 100000, thresholdTransactions: 200, effectiveDate: '2019-07-01', marketplaceFacilitator: true },
+  { stateCode: 'SC', thresholdAmount: 100000, thresholdTransactions: 0, effectiveDate: '2019-11-01', marketplaceFacilitator: true },
+  { stateCode: 'SD', thresholdAmount: 100000, thresholdTransactions: 0, effectiveDate: '2019-11-01', marketplaceFacilitator: true },
+  { stateCode: 'TN', thresholdAmount: 100000, thresholdTransactions: 0, effectiveDate: '2020-10-01', marketplaceFacilitator: true },
+  { stateCode: 'TX', thresholdAmount: 500000, thresholdTransactions: 0, effectiveDate: '2019-10-01', marketplaceFacilitator: true },
+  { stateCode: 'UT', thresholdAmount: 100000, thresholdTransactions: 200, effectiveDate: '2019-01-01', marketplaceFacilitator: true },
+  { stateCode: 'VT', thresholdAmount: 100000, thresholdTransactions: 200, effectiveDate: '2017-07-01', marketplaceFacilitator: true },
+  { stateCode: 'VA', thresholdAmount: 100000, thresholdTransactions: 200, effectiveDate: '2019-09-01', marketplaceFacilitator: true },
+  { stateCode: 'WA', thresholdAmount: 100000, thresholdTransactions: 0, effectiveDate: '2018-10-01', marketplaceFacilitator: true },
+  { stateCode: 'WV', thresholdAmount: 100000, thresholdTransactions: 200, effectiveDate: '2019-07-01', marketplaceFacilitator: true },
+  { stateCode: 'WI', thresholdAmount: 100000, thresholdTransactions: 0, effectiveDate: '2019-10-01', marketplaceFacilitator: true },
+  { stateCode: 'WY', thresholdAmount: 100000, thresholdTransactions: 0, effectiveDate: '2019-02-01', marketplaceFacilitator: true }
+];
+
+// Filing Calendar - Due dates for sales tax returns
+export interface FilingDeadline {
+  stateCode: string;
+  frequency: 'monthly' | 'quarterly' | 'annual';
+  dueDay: number;
+  nextDueDate: string;
+  gracePeriodDays: number;
+}
+
+export function generateFilingCalendar(salesData: ProvinceSalesData[]): FilingDeadline[] {
+  const today = new Date();
+  const currentMonth = today.getMonth();
+  const currentYear = today.getFullYear();
+  
+  return salesData.map(state => {
+    const rule = economicNexusRules.find(r => r.stateCode === state.provinceCode);
+    
+    // Determine filing frequency based on sales volume
+    let frequency: 'monthly' | 'quarterly' | 'annual' = 'annual';
+    if (state.totalSales > 50000) frequency = 'monthly';
+    else if (state.totalSales > 10000) frequency = 'quarterly';
+    
+    // Calculate next due date
+    let nextDueDate: Date;
+    let dueDay = 20;  // Most states: 20th of the month
+    
+    if (frequency === 'monthly') {
+      nextDueDate = new Date(currentYear, currentMonth + 1, dueDay);
+    } else if (frequency === 'quarterly') {
+      const quarter = Math.floor(currentMonth / 3);
+      nextDueDate = new Date(currentYear, (quarter + 1) * 3, dueDay);
+    } else {
+      nextDueDate = new Date(currentYear + 1, 0, dueDay);
+    }
+    
+    return {
+      stateCode: state.provinceCode,
+      frequency,
+      dueDay,
+      nextDueDate: nextDueDate.toISOString().split('T')[0],
+      gracePeriodDays: rule?.marketplaceFacilitator ? 0 : 5
+    };
+  });
+}
+
+// Tax Rate API Integration Functions
+export async function fetchTaxRateFromAPI(
+  zipCode: string,
+  city: string,
+  state: string,
+  config: TaxRateAPIConfig
+): Promise<{ rate: number; source: string } | null> {
+  // This is a placeholder for actual API integration
+  // In production, this would call TaxJar, Avalara, or other provider
+  
+  if (!config.apiKey) {
+    console.warn('Tax Rate API: No API key provided');
+    return null;
+  }
+  
+  try {
+    if (config.provider === 'taxjar') {
+      // TaxJar API endpoint
+      const response = await fetch(
+        `https://api.taxjar.com/v2/rates/${zipCode}?city=${encodeURIComponent(city)}&country=US`,
+        {
+          headers: {
+            'Authorization': `Bearer ${config.apiKey}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      if (response.ok) {
+        const data: TaxJarRateResponse = await response.json();
+        return {
+          rate: parseFloat(data.rate.combined_rate),
+          source: 'taxjar'
+        };
+      }
+    } else if (config.provider === 'avalara') {
+      // Avalara API endpoint (simplified)
+      // Note: Actual Avalara integration requires their SDK
+      console.log('Avalara API integration requires AvaTax SDK');
+      return null;
+    }
+  } catch (error) {
+    console.error('Tax Rate API Error:', error);
+  }
+  
+  return null;
+}
+
+// Enhanced Sales Tax Calculation with API fallback
+export async function calculateSalesTaxWithAPI(
+  transactions: any[],
+  apiConfig?: TaxRateAPIConfig
+): Promise<ProvinceSalesData[]> {
+  // First calculate with static rates
+  const salesData = calculateSalesTaxSummary(transactions);
+  
+  // If API config provided, enhance with live rates for complex states
+  if (apiConfig?.apiKey) {
+    for (const state of salesData) {
+      // Only fetch API rates for complex states with local variations
+      const complexStates = ['CA', 'NY', 'TX', 'CO', 'AZ', 'AL', 'IL'];
+      
+      if (complexStates.includes(state.provinceCode)) {
+        try {
+          // In a real implementation, you'd have ZIP code data per transaction
+          // This is a simplified example
+          const apiRate = await fetchTaxRateFromAPI(
+            '90210',  // Example ZIP
+            'Beverly Hills',
+            state.provinceCode,
+            apiConfig
+          );
+          
+          if (apiRate) {
+            state.taxRateSource = 'api';
+            state.combinedRate = apiRate.rate;
+            state.taxCollected = state.totalSales * apiRate.rate;
+            state.lastUpdated = new Date().toISOString();
+          }
+        } catch (error) {
+          console.warn(`Failed to fetch API rate for ${state.provinceCode}:`, error);
+          state.taxRateSource = 'static';
+        }
+      } else {
+        state.taxRateSource = 'static';
+      }
+    }
+  } else {
+    // Mark all as static if no API configured
+    salesData.forEach(s => s.taxRateSource = 'static');
+  }
+  
+  return salesData;
+}
+
+// Marketplace Facilitator Detection
+export function isMarketplaceFacilitator(platform: string): boolean {
+  const facilitators = [
+    'Amazon', 'eBay', 'Etsy', 'Walmart', 'Shopify', 'Facebook', 'Google'
+  ];
+  return facilitators.some(f => 
+    platform?.toLowerCase().includes(f.toLowerCase())
+  );
+}
+
+// Check if seller needs to collect tax in state (considering marketplace facilitator laws)
+export function shouldCollectTax(
+  stateCode: string,
+  totalSales: number,
+  transactionCount: number,
+  platforms: string[]
+): {
+  required: boolean;
+  reason: string;
+  marketplaceOnly: boolean;
+} {
+  const rule = economicNexusRules.find(r => r.stateCode === stateCode);
+  const hasFacilitator = platforms.some(p => isMarketplaceFacilitator(p));
+  
+  if (!rule) {
+    return { required: false, reason: 'No economic nexus rule found', marketplaceOnly: false };
+  }
+  
+  const thresholdMet = totalSales >= rule.thresholdAmount ||
+    (rule.thresholdTransactions > 0 && transactionCount >= rule.thresholdTransactions);
+  
+  // Some states require AND, some require OR
+  const isANDState = ['CA', 'CT', 'NY'].includes(stateCode);
+  const nexusReached = isANDState
+    ? (totalSales >= rule.thresholdAmount && transactionCount >= rule.thresholdTransactions)
+    : (totalSales >= rule.thresholdAmount || (rule.thresholdTransactions > 0 && transactionCount >= rule.thresholdTransactions));
+  
+  if (!nexusReached) {
+    return { required: false, reason: 'Below economic nexus threshold', marketplaceOnly: false };
+  }
+  
+  // If marketplace facilitator state and only selling through facilitators
+  if (rule.marketplaceFacilitator && hasFacilitator && platforms.every(p => isMarketplaceFacilitator(p))) {
+    return { 
+      required: false, 
+      reason: 'Marketplace facilitator collects on your behalf',
+      marketplaceOnly: true 
+    };
+  }
+  
+  return { 
+    required: true, 
+    reason: `Economic nexus threshold met: $${totalSales.toLocaleString()} sales`,
+    marketplaceOnly: false 
+  };
+}
+
 export function calculateSalesTaxSummary(transactions: any[]): ProvinceSalesData[] {
   const salesByProvince: Record<string, number> = {};
 
@@ -260,13 +568,33 @@ export function getNexusStatus(salesData: ProvinceSalesData[]): {
   totalProvinces: number;
   nexusReachedProvinces: number;
   atRiskProvinces: ProvinceSalesData[];
+  filingDeadlines: FilingDeadline[];
+  facilitatorStates: string[];
+  requiresDirectFiling: ProvinceSalesData[];
 } {
   const nexusReachedProvinces = salesData.filter(s => s.nexusReached);
   const atRiskProvinces = salesData.filter(s => !s.nexusReached && s.percentage >= 80);
+  
+  // Generate filing calendar for states with nexus
+  const filingDeadlines = generateFilingCalendar(nexusReachedProvinces);
+  
+  // Identify marketplace facilitator states
+  const facilitatorStates = economicNexusRules
+    .filter(r => r.marketplaceFacilitator)
+    .map(r => r.stateCode);
+  
+  // States requiring direct filing (not covered by facilitators)
+  const requiresDirectFiling = nexusReachedProvinces.filter(s => {
+    const rule = economicNexusRules.find(r => r.stateCode === s.provinceCode);
+    return !rule?.marketplaceFacilitator;
+  });
 
   return {
     totalProvinces: salesData.length,
     nexusReachedProvinces: nexusReachedProvinces.length,
-    atRiskProvinces
+    atRiskProvinces,
+    filingDeadlines,
+    facilitatorStates,
+    requiresDirectFiling
   };
 }

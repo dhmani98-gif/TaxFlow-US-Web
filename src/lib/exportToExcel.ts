@@ -33,7 +33,7 @@ export function exportAllReportsToExcel(scheduleCResult: any, salesData: any[], 
     // Create a workbook
     const workbook = XLSX.utils.book_new();
 
-    // Schedule C Sheet
+    // Schedule C Sheet - Main Lines
     const scheduleCData = [
       {
         'Line': '1',
@@ -47,7 +47,7 @@ export function exportAllReportsToExcel(scheduleCResult: any, salesData: any[], 
       },
       {
         'Line': '3',
-        'Description': 'Net receipts',
+        'Description': 'Net receipts (Line 1 - Line 2)',
         'Amount': scheduleCResult.line3_netReceipts
       },
       {
@@ -57,8 +57,14 @@ export function exportAllReportsToExcel(scheduleCResult: any, salesData: any[], 
       },
       {
         'Line': '7',
-        'Description': 'Gross profit',
+        'Description': 'Gross profit (Line 3 - Line 4)',
         'Amount': scheduleCResult.line7_grossProfit
+      },
+      {
+        'Line': '9',
+        'Description': 'Commissions and fees (Shopify, Amazon, Stripe/PayPal)',
+        'Amount': scheduleCResult.line9_commissionsFees || 0,
+        'Category': 'Platform Fees'
       },
       {
         'Line': '28',
@@ -67,18 +73,78 @@ export function exportAllReportsToExcel(scheduleCResult: any, salesData: any[], 
       },
       {
         'Line': '29',
-        'Description': 'Net profit (or loss)',
+        'Description': 'Net profit (or loss) (Line 7 - Line 28)',
         'Amount': scheduleCResult.line29_netProfit
+      }
+    ];
+    
+    // Part V: Other Expenses (Detailed)
+    const partVData = [
+      {},  // Empty row for separation
+      {
+        'Line': 'PART V',
+        'Description': 'Other Expenses (IRS Schedule C, Page 2)',
+        'Amount': null,
+        'Category': 'DETAILED BREAKDOWN'
       },
-      {},
+      ...(scheduleCResult.partVExpenses?.map((expense: any) => ({
+        'Line': '',
+        'Description': expense.description,
+        'Amount': expense.amount,
+        'Category': expense.category
+      })) || []),
+      {},  // Empty row
+      {
+        'Line': '',
+        'Description': 'Total Part V Other Expenses',
+        'Amount': scheduleCResult.partVExpenses?.reduce((sum: number, e: any) => sum + e.amount, 0) || 0,
+        'Category': 'TOTAL'
+      }
+    ];
+    
+    // Detailed Line Items
+    const lineItemsData = [
+      {},  // Empty row for separation
+      {
+        'Line': 'DETAIL',
+        'Description': 'Expense Breakdown by Schedule C Line',
+        'Amount': null,
+        'Category': 'SUMMARY'
+      },
       ...scheduleCResult.lineItems.map((item: any) => ({
         'Line': item.line,
         'Description': item.description,
-        'Amount': item.amount
+        'Amount': item.amount,
+        'Category': 'Line Item'
       }))
     ];
-    const scheduleCWorksheet = XLSX.utils.json_to_sheet(scheduleCData);
+    
+    // Combine all Schedule C data
+    const fullScheduleCData = [...scheduleCData, ...partVData, ...lineItemsData];
+    
+    const scheduleCWorksheet = XLSX.utils.json_to_sheet(fullScheduleCData);
     XLSX.utils.book_append_sheet(workbook, scheduleCWorksheet, 'Schedule C');
+    
+    // Part V Sheet (Separate detailed sheet)
+    if (scheduleCResult.partVExpenses && scheduleCResult.partVExpenses.length > 0) {
+      const partVWorksheetData = [
+        {
+          'Description': 'PART V: Other Expenses',
+          'Amount': null,
+          'Category': null,
+          'IRS Reference': 'Schedule C, Page 2'
+        },
+        {},
+        ...scheduleCResult.partVExpenses.map((expense: any, index: number) => ({
+          'Description': expense.description,
+          'Amount': expense.amount,
+          'Category': expense.category,
+          'IRS Reference': `Line 28b - Item ${index + 1}`
+        }))
+      ];
+      const partVWorksheet = XLSX.utils.json_to_sheet(partVWorksheetData);
+      XLSX.utils.book_append_sheet(workbook, partVWorksheet, 'Part V - Other Expenses');
+    }
 
     // Sales Tax Sheet
     const salesTaxData = salesData.map((state: any) => ({

@@ -39,8 +39,6 @@ export function exportScheduleCToPDF(scheduleCResult: any, transactions: any[]) 
     { line: '3', description: 'Net receipts (Line 1 - Line 2)', amount: scheduleCResult.line3_netReceipts },
     { line: '4', description: 'Cost of goods sold', amount: scheduleCResult.line4_costOfGoodsSold },
     { line: '7', description: 'Gross profit (Line 3 - Line 4)', amount: scheduleCResult.line7_grossProfit },
-    { line: '28', description: 'Total expenses', amount: scheduleCResult.line28_totalExpenses },
-    { line: '29', description: 'Net profit (or loss) (Line 7 - Line 28)', amount: scheduleCResult.line29_netProfit },
   ];
 
   lineItems.forEach(item => {
@@ -53,11 +51,72 @@ export function exportScheduleCToPDF(scheduleCResult: any, transactions: any[]) 
     y += 12;
   });
 
-  // Detailed expenses
+  // Line 9: Commissions and Fees (NEW - Critical for e-commerce)
   y += 5;
+  doc.setFontSize(9);
+  doc.setFont(undefined, 'bold');
+  doc.setTextColor(0, 229, 255);  // Electric blue to highlight
+  doc.text('9', 20, y);
+  doc.setFont(undefined, 'normal');
+  doc.text('Commissions and fees (Shopify, Amazon, Stripe/PayPal)', 35, y);
+  doc.text(`$${(scheduleCResult.line9_commissionsFees || 0).toFixed(2)}`, 180, y, { align: 'right' });
+  doc.setTextColor(0, 0, 0);  // Reset to black
+  y += 12;
+
+  // Continue with remaining lines
+  const remainingLines = [
+    { line: '28', description: 'Total expenses', amount: scheduleCResult.line28_totalExpenses },
+    { line: '29', description: 'Net profit (or loss) (Line 7 - Line 28)', amount: scheduleCResult.line29_netProfit },
+  ];
+
+  remainingLines.forEach(item => {
+    doc.setFontSize(9);
+    doc.setFont(undefined, 'bold');
+    doc.text(`${item.line}`, 20, y);
+    doc.setFont(undefined, 'normal');
+    doc.text(item.description, 35, y);
+    doc.text(`$${item.amount.toFixed(2)}`, 180, y, { align: 'right' });
+    y += 12;
+  });
+
+  // Part V: Other Expenses (NEW - Detailed breakdown)
+  if (scheduleCResult.partVExpenses && scheduleCResult.partVExpenses.length > 0) {
+    y += 10;
+    doc.setFontSize(11);
+    doc.setFont(undefined, 'bold');
+    doc.setFillColor(0, 229, 255);
+    doc.text('PART V: Other Expenses (IRS Schedule C, Page 2)', 20, y);
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(8);
+    doc.setFont(undefined, 'normal');
+    y += 8;
+    doc.text('Enter the type and amount of each separate expense below:', 20, y);
+    y += 10;
+
+    // Table header
+    doc.setFillColor(240, 240, 240);
+    doc.rect(20, y - 5, 160, 10, 'F');
+    doc.setFontSize(8);
+    doc.setFont(undefined, 'bold');
+    doc.text('Description', 25, y);
+    doc.text('Amount', 160, y, { align: 'right' });
+    y += 8;
+
+    // Part V expenses
+    scheduleCResult.partVExpenses.forEach((expense: any) => {
+      doc.setFontSize(8);
+      doc.setFont(undefined, 'normal');
+      doc.text(expense.description.substring(0, 70), 25, y);  // Truncate long descriptions
+      doc.text(`$${expense.amount.toFixed(2)}`, 160, y, { align: 'right' });
+      y += 7;
+    });
+  }
+
+  // Detailed expenses (original)
+  y += 10;
   doc.setFontSize(10);
   doc.setFont(undefined, 'bold');
-  doc.text('Detailed Expense Breakdown:', 20, y);
+  doc.text('Detailed Expense Breakdown by Schedule C Line:', 20, y);
   y += 10;
 
   scheduleCResult.lineItems.forEach((item: any) => {

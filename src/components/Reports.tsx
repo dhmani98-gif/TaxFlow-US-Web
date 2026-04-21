@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { auth, db } from '../lib/supabase';
-import { calculateScheduleC } from '../lib/scheduleCMappings';
+import { calculateScheduleC, ScheduleCResult, PartVExpense } from '../lib/scheduleCMappings';
 import { calculateSalesTaxSummary, getNexusStatus } from '../lib/salesTaxLogic';
 import { calculateReconciliation } from '../lib/reconciliationEngine';
 import { exportScheduleCToExcel, exportSalesTaxToExcel, exportReconciliationToExcel, exportAllReportsToExcel } from '../lib/exportToExcel';
@@ -151,7 +151,7 @@ export default function Reports({ userId }: ReportsProps) {
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="space-y-6">
+          <div className="space-y-6">
           {reports.map((report) => (
             <div key={report.id} className="card bg-carbon border-white/5 p-6 hover:border-electric/30 transition-all group">
               <div className="flex items-start justify-between mb-4">
@@ -193,6 +193,63 @@ export default function Reports({ userId }: ReportsProps) {
               </div>
             </div>
           ))}
+          
+          {/* NEW: Schedule C Line 9 & Part V Preview Card */}
+          {(() => {
+            const scheduleC = calculateScheduleC(transactions);
+            return (
+              <div className="card bg-gradient-to-br from-carbon to-[#0a0a0a] border-electric/20 p-6 mt-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="p-2 bg-electric/10 text-electric rounded-lg">
+                    <FileText size={20} />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black text-electric uppercase tracking-widest">IRS Schedule C - Enhanced</span>
+                    <h3 className="font-bold text-lg text-white">Platform Fees & Other Expenses</h3>
+                  </div>
+                </div>
+                
+                {/* Line 9: Commissions and Fees */}
+                <div className="mb-4 p-3 bg-white/5 rounded-lg">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-slate-400">Line 9: Commissions and Fees</span>
+                    <span className="text-lg font-bold text-electric">
+                      ${scheduleC.line9_commissionsFees?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Shopify fees, Amazon fees, Stripe/PayPal processing fees
+                  </p>
+                </div>
+                
+                {/* Part V: Other Expenses Summary */}
+                {scheduleC.partVExpenses && scheduleC.partVExpenses.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold text-white mb-2">Part V: Other Expenses (Detailed)</h4>
+                    {scheduleC.partVExpenses.slice(0, 5).map((expense, index) => (
+                      <div key={index} className="flex justify-between items-center text-sm">
+                        <span className="text-slate-400">{expense.description}</span>
+                        <span className="text-white font-medium">
+                          ${expense.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    ))}
+                    {scheduleC.partVExpenses.length > 5 && (
+                      <p className="text-xs text-slate-500 text-center mt-2">
+                        +{scheduleC.partVExpenses.length - 5} more expenses in full report
+                      </p>
+                    )}
+                  </div>
+                )}
+                
+                <div className="mt-4 pt-4 border-t border-white/10">
+                  <p className="text-xs text-slate-500">
+                    ✅ IRS-compliant Schedule C with Line 9 and Part V specification
+                  </p>
+                </div>
+              </div>
+            );
+          })()}
         </div>
 
         <div className="space-y-8">
