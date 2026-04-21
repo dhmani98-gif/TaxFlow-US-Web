@@ -382,3 +382,287 @@ SELECT
 FROM transactions t
 WHERE t.state_code IS NOT NULL
 GROUP BY t.org_id, t.state_code;
+
+-- ============================================
+-- New Tables for April 2026 Features
+-- Accountant Portal, AI Categorization, Filing Deadlines
+-- ============================================
+
+-- ============================================
+-- Table: Accountant-Client Relationships
+-- ============================================
+CREATE TABLE accountant_clients (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  accountant_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  client_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  status TEXT DEFAULT 'pending', -- 'pending', 'active', 'inactive'
+  invitation_email TEXT,
+  invitation_sent_at TIMESTAMP WITH TIME ZONE,
+  invitation_accepted_at TIMESTAMP WITH TIME ZONE,
+  invitation_token TEXT,
+  notes TEXT,
+  custom_settings JSONB DEFAULT '{}',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(accountant_id, client_id)
+);
+
+-- Indexes
+CREATE INDEX idx_accountant_clients_accountant ON accountant_clients(accountant_id);
+CREATE INDEX idx_accountant_clients_client ON accountant_clients(client_id);
+CREATE INDEX idx_accountant_clients_status ON accountant_clients(status);
+
+-- RLS
+ALTER TABLE accountant_clients ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY accountant_clients_accountant_view
+  ON accountant_clients
+  FOR ALL
+  USING (auth.uid() = accountant_id);
+
+CREATE POLICY accountant_clients_client_view
+  ON accountant_clients
+  FOR SELECT
+  USING (auth.uid() = client_id);
+
+-- Trigger
+CREATE TRIGGER update_accountant_clients_updated_at
+  BEFORE UPDATE ON accountant_clients
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ============================================
+-- Table: AI Categorization Log
+-- ============================================
+CREATE TABLE ai_categorizations (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  transaction_id UUID NOT NULL REFERENCES transactions(id) ON DELETE CASCADE,
+  suggested_category_id UUID REFERENCES tax_categories(id),
+  confidence_score DECIMAL(3, 2) CHECK (confidence_score >= 0 AND confidence_score <= 1),
+  ai_model TEXT,
+  ai_version TEXT,
+  explanation TEXT,
+  raw_prompt TEXT,
+  raw_response TEXT,
+  user_accepted BOOLEAN,
+  user_override_category_id UUID REFERENCES tax_categories(id),
+  processing_time_ms INTEGER,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Indexes
+CREATE INDEX idx_ai_categorizations_transaction ON ai_categorizations(transaction_id);
+CREATE INDEX idx_ai_categorizations_confidence ON ai_categorizations(confidence_score);
+CREATE INDEX idx_ai_categorizations_created ON ai_categorizations(created_at);
+
+-- RLS
+ALTER TABLE ai_categorizations ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY ai_categorizations_org_access
+  ON ai_categorizations
+  FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM transactions t
+      JOIN organizations o ON t.org_id = o.id
+      WHERE t.id = ai_categorizations.transaction_id
+      AND o.profile_id = auth.uid()
+    )
+  );
+
+-- Trigger
+CREATE TRIGGER update_ai_categorizations_updated_at
+  BEFORE UPDATE ON ai_categorizations
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ============================================
+-- Table: Integration Sync Logs
+-- ============================================
+CREATE TABLE integration_sync_logs (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  connection_id UUID NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
+  sync_type TEXT CHECK (sync_type IN ('full', 'incremental', 'manual', 'scheduled')),
+  status TEXT CHECK (status IN ('success', 'partial', 'failed', 'in_progress')),
+  records_processed INTEGER DEFAULT 0,
+  records_failed INTEGER DEFAULT 0,
+  records_created INTEGER DEFAULT 0,
+  records_updated INTEGER DEFAULT 0,
+  error_message TEXT,
+  error_details JSONB DEFAULT '{}',
+  sync_config JSONB DEFAULT '{}',
+  started_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  completed_at TIMESTAMP WITH TIME ZONE,
+  duration_seconds INTEGER,
+  triggered_by TEXT DEFAULT 'user'
+);
+
+-- Indexes
+CREATE INDEX idx_sync_logs_connection ON integration_sync_logs(connection_id);
+CREATE INDEX idx_sync_logs_date ON integration_sync_logs(started_at DESC);
+CREATE INDEX idx_sync_logs_status ON integration_sync_logs(status);
+
+-- RLS
+ALTER TABLE integration_sync_logs ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY integration_sync_logs_org_access
+  ON integration_sync_logs
+  FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM connections c
+      JOIN organizations o ON c.org_id = o.id
+      WHERE c.id = integration_sync_logs.connection_id
+      AND o.profile_id = auth.uid()
+    )
+  );
+
+-- ============================================
+-- Table: Filing Deadlines
+-- ============================================
+CREATE TABLE filing_deadlines (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  form_type TEXT NOT NULL,
+  form_name TEXT,
+  jurisdiction TEXT,
+  tax_year INTEGER DEFAULT EXTRACT(YEAR FROM NOW()),
+  due_date DATE NOT NULL,
+  extension_due_date DATE,
+  status TEXT DEFAULT 'upcoming' CHECK (status IN ('upcoming', 'filed', 'overdue', 'extension_requested', 'extension_granted')),
+  reminder_sent BOOLEAN DEFAULT FALSE,
+  reminder_sent_at TIMESTAMP WITH TIME ZONE,
+  filed_at TIMESTAMP WITH TIME ZONE,
+  filed_by TEXT,
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Indexes
+CREATE INDEX idx_filing_deadlines_org ON filing_deadlines(org_id);
+CREATE INDEX idx_filing_deadlines_date ON filing_deadlines(due_date);
+CREATE INDEX idx_filing_deadlines_status ON filing_deadlines(status);
+
+-- RLS
+ALTER TABLE filing_deadlines ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY filing_deadlines_org_access
+  ON filing_deadlines
+  FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM organizations o
+      WHERE o.id = filing_deadlines.org_id
+      AND o.profile_id = auth.uid()
+    )
+  );
+
+-- Trigger
+CREATE TRIGGER update_filing_deadlines_updated_at
+  BEFORE UPDATE ON filing_deadlines
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ============================================
+-- Enhanced Columns on Existing Tables
+-- ============================================
+
+-- Add user_type to profiles
+ALTER TABLE profiles 
+  ADD COLUMN IF NOT EXISTS user_type TEXT DEFAULT 'business_owner' 
+  CHECK (user_type IN ('business_owner', 'accountant', 'admin', 'bookkeeper'));
+
+ALTER TABLE profiles 
+  ADD COLUMN IF NOT EXISTS phone TEXT;
+
+ALTER TABLE profiles 
+  ADD COLUMN IF NOT EXISTS timezone TEXT DEFAULT 'America/New_York';
+
+ALTER TABLE profiles 
+  ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+
+CREATE INDEX idx_profiles_user_type ON profiles(user_type);
+
+-- Add AI fields to transactions
+ALTER TABLE transactions 
+  ADD COLUMN IF NOT EXISTS ai_confidence DECIMAL(3, 2) 
+  CHECK (ai_confidence >= 0 AND ai_confidence <= 1);
+
+ALTER TABLE transactions 
+  ADD COLUMN IF NOT EXISTS categorization_source TEXT 
+  CHECK (categorization_source IN ('manual', 'ai', 'rule', 'imported', 'api'));
+
+ALTER TABLE transactions 
+  ADD COLUMN IF NOT EXISTS platform_transaction_id TEXT;
+
+ALTER TABLE transactions 
+  ADD COLUMN IF NOT EXISTS province_name TEXT;
+
+ALTER TABLE transactions 
+  ADD COLUMN IF NOT EXISTS country_code TEXT DEFAULT 'US';
+
+CREATE INDEX idx_transactions_platform_tx_id ON transactions(platform, platform_transaction_id);
+CREATE INDEX idx_transactions_cat_source ON transactions(categorization_source);
+
+-- Enhance tax_categories
+ALTER TABLE tax_categories 
+  ADD COLUMN IF NOT EXISTS ai_keywords TEXT[] DEFAULT '{}';
+
+ALTER TABLE tax_categories 
+  ADD COLUMN IF NOT EXISTS typical_amount_range JSONB DEFAULT '{"min": null, "max": null}';
+
+ALTER TABLE tax_categories 
+  ADD COLUMN IF NOT EXISTS priority INTEGER DEFAULT 100;
+
+ALTER TABLE tax_categories 
+  ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
+
+-- Enhance connections
+ALTER TABLE connections 
+  ADD COLUMN IF NOT EXISTS last_sync_records INTEGER DEFAULT 0;
+
+ALTER TABLE connections 
+  ADD COLUMN IF NOT EXISTS consecutive_errors INTEGER DEFAULT 0;
+
+ALTER TABLE connections 
+  ADD COLUMN IF NOT EXISTS sync_schedule TEXT DEFAULT '0 */6 * * *';
+
+ALTER TABLE connections 
+  ADD COLUMN IF NOT EXISTS webhook_url TEXT;
+
+ALTER TABLE connections 
+  ADD COLUMN IF NOT EXISTS webhook_secret TEXT;
+
+CREATE INDEX idx_connections_sync_status ON connections(sync_status);
+
+-- ============================================
+-- Function: Generate Standard Filing Deadlines
+-- ============================================
+CREATE OR REPLACE FUNCTION generate_standard_deadlines(org_id UUID, tax_year INTEGER)
+RETURNS VOID AS $$
+BEGIN
+  -- Q1 Estimated Tax
+  INSERT INTO filing_deadlines (org_id, form_type, form_name, jurisdiction, tax_year, due_date)
+  VALUES (org_id, '1040-ES-Q1', 'Q1 Estimated Tax', 'federal', tax_year, make_date(tax_year, 4, 15))
+  ON CONFLICT DO NOTHING;
+  
+  -- Q2 Estimated Tax
+  INSERT INTO filing_deadlines (org_id, form_type, form_name, jurisdiction, tax_year, due_date)
+  VALUES (org_id, '1040-ES-Q2', 'Q2 Estimated Tax', 'federal', tax_year, make_date(tax_year, 6, 15))
+  ON CONFLICT DO NOTHING;
+  
+  -- Q3 Estimated Tax
+  INSERT INTO filing_deadlines (org_id, form_type, form_name, jurisdiction, tax_year, due_date)
+  VALUES (org_id, '1040-ES-Q3', 'Q3 Estimated Tax', 'federal', tax_year, make_date(tax_year, 9, 15))
+  ON CONFLICT DO NOTHING;
+  
+  -- Q4 Estimated Tax
+  INSERT INTO filing_deadlines (org_id, form_type, form_name, jurisdiction, tax_year, due_date)
+  VALUES (org_id, '1040-ES-Q4', 'Q4 Estimated Tax', 'federal', tax_year, make_date(tax_year, 1, 15))
+  ON CONFLICT DO NOTHING;
+  
+  -- Schedule C (with 1040)
+  INSERT INTO filing_deadlines (org_id, form_type, form_name, jurisdiction, tax_year, due_date)
+  VALUES (org_id, 'Schedule-C', 'Schedule C - Business Profit/Loss', 'federal', tax_year, make_date(tax_year + 1, 4, 15))
+  ON CONFLICT DO NOTHING;
+END;
+$$ LANGUAGE plpgsql;
