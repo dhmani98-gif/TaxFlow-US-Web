@@ -432,7 +432,7 @@ export default function Integrations({ userId }: IntegrationsProps) {
                 <div className="p-2 bg-electric/10 rounded-lg">
                   <Key className="text-electric" size={20} />
                 </div>
-                <h3 className="text-xl font-bold text-white">Connect {selectedPlatform}</h3>
+                <h3 className="text-xl font-bold text-white">Connect {selectedPlatform.name}</h3>
               </div>
               <button
                 onClick={() => setShowModal(false)}
@@ -443,7 +443,7 @@ export default function Integrations({ userId }: IntegrationsProps) {
             </div>
 
             <form autoComplete="off" onSubmit={(e) => { e.preventDefault(); handleModalSave(); }}>
-              {selectedPlatform === 'Shopify' && (
+              {selectedPlatform.id === 'Shopify' && (
                 <>
                   <div>
                     <label className="block text-sm font-bold text-slate-400 mb-2">Shop URL</label>
@@ -473,7 +473,7 @@ export default function Integrations({ userId }: IntegrationsProps) {
                 </>
               )}
 
-              {selectedPlatform === 'Stripe' && (
+              {selectedPlatform.id === 'Stripe' && (
                 <>
                   <div>
                     <label className="block text-sm font-bold text-slate-400 mb-2">Public Key</label>
